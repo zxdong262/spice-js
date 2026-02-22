@@ -52,6 +52,10 @@ export class SpiceInputsConn extends SpiceConn {
   button_state: number = 0
   waiting_for_ack: number = 0
   keyboard_modifiers: number | undefined
+  pending_mouse_msg: { msg: any, x: number, y: number } | null = null
+  idle_callback_id: number | null = null
+  last_motion_time: number = 0
+  motion_throttle_ms: number = 8
 
   constructor (...args: any[]) {
     super(...args)
@@ -79,9 +83,42 @@ export class SpiceInputsConn extends SpiceConn {
     if (msg.type == Constants.SPICE_MSG_INPUTS_MOUSE_MOTION_ACK) {
       DEBUG > 1 && console.log('mouse motion ack')
       this.waiting_for_ack -= Constants.SPICE_INPUT_MOTION_ACK_BUNCH
+      this.flush_pending_mouse()
       return true
     }
     return false
+  }
+
+  queue_mouse_motion (msg: any, x: number, y: number): void {
+    this.pending_mouse_msg = { msg, x, y }
+
+    if (this.waiting_for_ack < Constants.SPICE_INPUT_MOTION_ACK_BUNCH) {
+      this.flush_pending_mouse()
+      return
+    }
+
+    if (this.idle_callback_id === null) {
+      if (typeof requestIdleCallback !== 'undefined') {
+        this.idle_callback_id = requestIdleCallback(() => {
+          this.idle_callback_id = null
+          this.flush_pending_mouse()
+        }, { timeout: 16 })
+      } else {
+        const now = performance.now()
+        if (now - this.last_motion_time >= this.motion_throttle_ms) {
+          this.flush_pending_mouse()
+        }
+      }
+    }
+  }
+
+  flush_pending_mouse (): void {
+    if (this.pending_mouse_msg && this.waiting_for_ack < (2 * Constants.SPICE_INPUT_MOTION_ACK_BUNCH)) {
+      this.send_msg(this.pending_mouse_msg.msg)
+      this.waiting_for_ack++
+      this.last_motion_time = performance.now()
+      this.pending_mouse_msg = null
+    }
   }
 }
 
@@ -99,9 +136,11 @@ export function handle_mousemove (this: { sc: any }, e: MouseEvent) {
     msg.build_msg(Constants.SPICE_MSGC_INPUTS_MOUSE_MOTION, move)
   }
   if (this.sc && this.sc.inputs && this.sc.inputs.state === 'ready') {
-    if (this.sc.inputs.waiting_for_ack < (2 * Constants.SPICE_INPUT_MOTION_ACK_BUNCH)) {
+    if (this.sc.inputs.waiting_for_ack < Constants.SPICE_INPUT_MOTION_ACK_BUNCH) {
       this.sc.inputs.send_msg(msg)
       this.sc.inputs.waiting_for_ack++
+    } else if (this.sc.inputs.waiting_for_ack < (2 * Constants.SPICE_INPUT_MOTION_ACK_BUNCH)) {
+      this.sc.inputs.queue_mouse_motion(msg, e.offsetX, e.offsetY)
     } else {
       DEBUG > 0 && this.sc.log_info('Discarding mouse motion')
     }

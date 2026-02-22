@@ -19,6 +19,7 @@ A TypeScript port of [spice-html5](https://gitlab.freedesktop.org/spice/spice-ht
 - Added LZ4 image compression support
 - Optimized message processing to handle multiple ArrayBuffers directly, avoiding buffer concatenation overhead
 - Uses native DataView for single ArrayBuffer operations, falling back to custom SpiceDataView only for multi-buffer scenarios
+- Improved mouse motion handling with queue + collapse strategy and requestIdleCallback for smoother input
 
 The TypeScript conversion and build setup code was generated with the assistance of the GLM-5 model in Trae Solo Coder mode.
 

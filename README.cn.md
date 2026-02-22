@@ -19,6 +19,7 @@
 - 添加了 LZ4 图像压缩支持
 - 优化消息处理，直接处理多个 ArrayBuffer，避免缓冲区拼接开销
 - 单 ArrayBuffer 操作使用原生 DataView，仅在多缓冲区场景下使用自定义 SpiceDataView
+- 改进鼠标移动处理，采用队列+折叠策略和 requestIdleCallback 实现更流畅的输入
 
 TypeScript 转换和构建配置代码是在 Trae Solo Coder 模式下借助 GLM-5 模型辅助生成的。
 
