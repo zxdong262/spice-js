@@ -32,17 +32,17 @@ export class SpicePortConn extends SpiceConn {
   portName: string = ''
   portOpened: boolean = false
 
-  constructor (...args: any[]) {
-    super(...args)
-    DEBUG > 0 && console.log('SPICE port: created SPICE port channel. Args:', args)
+  constructor (o: any) {
+    super(o)
+    DEBUG > 0 && console.log('SPICE port: created SPICE port channel. Args:', arguments)
   }
 
   process_channel_message (msg: any): boolean {
     if (msg.type == Constants.SPICE_MSG_PORT_INIT) {
       if (this.port_name === null) {
         const m = new SpiceMsgPortInit(msg.data)
-        this.portName = arraybuffer_to_str(new Uint8Array(m.name))
-        this.portOpened = m.opened
+        this.portName = arraybuffer_to_str(m.name as unknown as ArrayBuffer)
+        this.portOpened = Boolean(m.opened)
         DEBUG > 0 && console.log('SPICE port: Port', this.portName, 'initialized')
         return true
       }
@@ -50,7 +50,7 @@ export class SpicePortConn extends SpiceConn {
       DEBUG > 0 && console.log('SPICE port: Port', this.port_name, 'is already initialized.')
     } else if (msg.type == Constants.SPICE_MSG_PORT_EVENT) {
       DEBUG > 0 && console.log('SPICE port: Port event received for', this.portName, msg)
-      var event = new CustomEvent('spice-port-event', {
+      const portEvent = new CustomEvent('spice-port-event', {
         detail: {
           channel: this,
           spiceEvent: new Uint8Array(msg.data)
@@ -59,11 +59,11 @@ export class SpicePortConn extends SpiceConn {
         cancelable: true
       })
 
-      window.dispatchEvent(event)
+      window.dispatchEvent(portEvent)
       return true
     } else if (msg.type == Constants.SPICE_MSG_SPICEVMC_DATA) {
       DEBUG > 0 && console.log('SPICE port: Data received in port', this.portName, msg)
-      var event = new CustomEvent('spice-port-data', {
+      const dataEvent = new CustomEvent('spice-port-data', {
         detail: {
           channel: this,
           data: msg.data

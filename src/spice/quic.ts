@@ -269,7 +269,7 @@ class QuicModel {
     this.levels = 0x1 << bpc
     this.n_buckets_ptrs = 0
 
-    switch (evol) {
+    switch (evol as number) {
       case 1:
         this.repfirst = 3
         this.firstsize = 1

@@ -76,6 +76,7 @@ export class SpiceDisplayConn extends SpiceConn {
   primary_surface: number
   cache: any
   focusListener: () => void
+  streams: any = {}
 
   process_channel_message (msg: any): boolean {
     if (msg.type == Constants.SPICE_MSG_DISPLAY_MODE) {
@@ -268,7 +269,7 @@ export class SpiceDisplayConn extends SpiceConn {
             src_area: draw_copy.data.src_area,
             image_data: source_img,
             tag: 'bitmap.' + draw_copy.data.src_bitmap.bitmap.format,
-            has_alpha: draw_copy.data.src_bitmap.bitmap != Constants.SPICE_BITMAP_FMT_32BIT,
+            has_alpha: (draw_copy.data.src_bitmap.bitmap as any).format != Constants.SPICE_BITMAP_FMT_32BIT,
             descriptor: draw_copy.data.src_bitmap.descriptor
           })
         } else if (draw_copy.data.src_bitmap.descriptor.type == Constants.SPICE_IMAGE_TYPE_LZ_RGB) {
@@ -472,9 +473,10 @@ export class SpiceDisplayConn extends SpiceConn {
         document.getElementById(this.parent.dump_id).appendChild(canvas)
       }
 
-      m.surface.canvas = canvas
-      m.surface.draw_count = 0
-      this.surfaces[m.surface.surface_id] = m.surface
+      const surface: any = m.surface
+      surface.canvas = canvas
+      surface.draw_count = 0
+      this.surfaces[m.surface.surface_id] = surface
 
       if (m.surface.flags & Constants.SPICE_SURFACE_FLAGS_PRIMARY) {
         this.primary_surface = m.surface.surface_id
@@ -1085,19 +1087,19 @@ function handle_append_video_buffer_done (e: Event): void {
 function handle_video_buffer_error (e: Event): void {
   const sb = e.target as SourceBuffer
   const p = sb.spiceconn
-  p.log_err('source_buffer error ' + (e as Error).message)
+  p.log_err('source_buffer error ' + (e as unknown as { message: string }).message)
 }
 
 function push_or_queue (stream: any, msg: any, mb: ArrayBuffer): void {
-  const frame = {
-    msg_mmtime: msg.base.multi_media_time
+  const frame: any = {
+    msg_mmtime: msg.base.multi_media_time,
+    mb
   }
 
   if (stream.append_okay) {
     stream.current_frame = frame
     append_video_buffer(stream.source_buffer, mb)
   } else {
-    frame.mb = mb
     stream.queue.push(frame)
   }
 }

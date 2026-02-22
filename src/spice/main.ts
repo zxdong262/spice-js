@@ -204,7 +204,7 @@ class SpiceMainConn extends SpiceConn {
 
       remaining_tokens = this.agent_tokens
       while (remaining_tokens > 0 && this.file_xfer_read_queue.length > 0) {
-        const xfer_task = this.file_xfer_read_queue.shift()
+        const xfer_task: any = this.file_xfer_read_queue.shift()
         if (xfer_task) {
           this.file_xfer_read(xfer_task, xfer_task.read_bytes)
           remaining_tokens--
@@ -221,12 +221,12 @@ class SpiceMainConn extends SpiceConn {
     if (msg.type == Constants.SPICE_MSG_MAIN_AGENT_DATA) {
       const agent_data = new Messages.SpiceMsgMainAgentData(msg.data)
       if (agent_data.type == Constants.VD_AGENT_ANNOUNCE_CAPABILITIES) {
-        const agent_caps = new Messages.VDAgentAnnounceCapabilities(agent_data.data)
+        const agent_caps = new (Messages.VDAgentAnnounceCapabilities as any)(agent_data.data)
         this.agent_caps = [agent_caps.caps]
         if (agent_caps.request) { this.announce_agent_capabilities(0) }
         return true
       } else if (agent_data.type == Constants.VD_AGENT_FILE_XFER_STATUS) {
-        this.handle_file_xfer_status(new Messages.VDAgentFileXferStatusMessage(agent_data.data))
+        this.handle_file_xfer_status(new (Messages.VDAgentFileXferStatusMessage as any)(agent_data.data))
         return true
       } else if (agent_data.type == Constants.VD_AGENT_CLIPBOARD_GRAB) {
         this.handle_clipboard_grab()
@@ -413,7 +413,7 @@ class SpiceMainConn extends SpiceConn {
     eb = Math.min(sb + FILE_XFER_CHUNK_SIZE, file_xfer_task.file.size)
 
     if (!this.agent_tokens) {
-      file_xfer_task.read_bytes = sb
+      (file_xfer_task as any).read_bytes = sb
       this.file_xfer_read_queue.push(file_xfer_task)
       return
     }

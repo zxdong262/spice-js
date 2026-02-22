@@ -56,9 +56,11 @@ export class SpiceInputsConn extends SpiceConn {
   idle_callback_id: number | null = null
   last_motion_time: number = 0
   motion_throttle_ms: number = 8
+  mouse_mode?: number
+  state?: string
 
-  constructor (...args: any[]) {
-    super(...args)
+  constructor (o: any) {
+    super(o)
   }
 
   process_channel_message (msg: any): boolean {

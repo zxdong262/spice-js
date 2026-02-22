@@ -39,8 +39,8 @@ export class SpicePlaybackConn extends SpiceConn {
   cluster_time: number = 0
   last_data_time: number = 0
 
-  constructor (...args: any[]) {
-    super(...args)
+  constructor (o: any) {
+    super(o)
   }
 
   process_channel_message (msg: any): boolean {

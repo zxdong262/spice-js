@@ -149,7 +149,7 @@ export interface CodeToScanCode {
   [key: string]: number
 }
 
-const codeToScanCodeArr: any[] = []
+const codeToScanCodeArr: Partial<CodeToScanCode> & { [key: string]: number } = {}
 
 codeToScanCodeArr.Escape = 0x01
 codeToScanCodeArr.Digit1 = 0x02
@@ -297,4 +297,4 @@ codeToScanCodeArr.LaunchApp1 = 0xE0 | (0x6B << 8)
 codeToScanCodeArr.LaunchMail = 0xE0 | (0x6C << 8)
 codeToScanCodeArr.MediaSelect = 0xE0 | (0x6D << 8)
 
-export const code_to_scancode: CodeToScanCode = codeToScanCodeArr
+export const code_to_scancode: CodeToScanCode = codeToScanCodeArr as CodeToScanCode

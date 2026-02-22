@@ -52,8 +52,12 @@ export interface SpiceEventHandlers {
   keyboard_modifiers: (modifiers: { num_lock: boolean, caps_lock: boolean, scroll_lock: boolean }) => void
 }
 
+interface SpiceWebSocket extends WebSocket {
+  parent: SpiceConn
+}
+
 export class SpiceConn {
-  ws: WebSocket
+  ws: SpiceWebSocket
   connection_id: number
   type: number
   chan_id: number
@@ -65,7 +69,7 @@ export class SpiceConn {
   onerror?: (error: Error) => void
   onsuccess?: (message: string) => void
   onagent?: (conn: SpiceConn) => void
-  state: string
+  state?: string
   wire_reader: SpiceWireReader
   messages_sent: number
   warnings: { [key: number]: boolean }
@@ -75,12 +79,19 @@ export class SpiceConn {
   ack_window?: number
   msgs_until_ack?: number
   timeout?: number
+  inputs?: any
   private event_handlers: Map<SpiceEventType, Set<Function>>
+
+  relative_now (): number {
+    return 0
+  }
+
+  send_clipboard_grab (): void {}
 
   constructor (o: any) {
     if (o === undefined || o.uri === undefined || !o.uri) { throw new Error('You must specify a uri') }
 
-    this.ws = new WebSocket(o.uri, 'binary')
+    this.ws = new WebSocket(o.uri, 'binary') as SpiceWebSocket
 
     if (!this.ws.binaryType) { throw new Error("WebSocket doesn't support binaryType.  Try a different browser.") }
 
@@ -108,7 +119,7 @@ export class SpiceConn {
     this.event_handlers = new Map()
     this.emit('connection_status', 'connecting')
 
-    this.ws.addEventListener('open', function (e) {
+    this.ws.addEventListener('open', function (this: SpiceWebSocket, e) {
       DEBUG > 0 && console.log('>> WebSockets.onopen')
       DEBUG > 0 && console.log('id ' + this.parent.connection_id + '; type ' + this.parent.type)
 
@@ -120,24 +131,23 @@ export class SpiceConn {
       this.parent.state = 'start'
       this.parent.emit('connection_status', 'connecting')
     })
-    this.ws.addEventListener('error', function (e) {
-      if ('url' in e.target) {
-        this.parent.log_err("WebSocket error: Can't connect to websocket on URL: " + e.target.url)
-      }
+    this.ws.addEventListener('error', function (this: SpiceWebSocket, e) {
+      const url = 'url' in e.target ? (e.target as WebSocket).url : 'unknown'
+      this.parent.log_err("WebSocket error: Can't connect to websocket on URL: " + url)
       this.parent.state = 'error'
       this.parent.emit('connection_status', 'error')
-      this.parent.report_error(e)
+      this.parent.report_error(new Error('WebSocket connection error'))
     })
-    this.ws.addEventListener('close', function (e) {
+    this.ws.addEventListener('close', function (this: SpiceWebSocket, e: CloseEvent) {
       DEBUG > 0 && console.log('>> WebSockets.onclose')
       DEBUG > 0 && console.log('id ' + this.parent.connection_id + '; type ' + this.parent.type)
       DEBUG > 0 && console.log(e)
       if (this.parent.state != 'closing' && this.parent.state != 'error' && this.parent.onerror !== undefined) {
-        var e: Error
-        if (this.parent.state == 'connecting') { e = new Error('Connection refused.') } else if (this.parent.state == 'start' || this.parent.state == 'link') { e = new Error('Unexpected protocol mismatch.') } else if (this.parent.state == 'ticket') { e = new Error('Bad password.') } else { e = new Error('Unexpected close while ' + this.parent.state) }
+        let err: Error
+        if (this.parent.state == 'connecting') { err = new Error('Connection refused.') } else if (this.parent.state == 'start' || this.parent.state == 'link') { err = new Error('Unexpected protocol mismatch.') } else if (this.parent.state == 'ticket') { err = new Error('Bad password.') } else { err = new Error('Unexpected close while ' + this.parent.state) }
 
-        this.parent.onerror(e)
-        this.parent.log_err(e.toString())
+        this.parent.onerror(err)
+        this.parent.log_err(err.toString())
       }
       this.parent.emit('connection_status', 'disconnected')
     })
@@ -361,8 +371,8 @@ export class SpiceConn {
     return 'unknown-' + this.type
   }
 
-  log_info (): void {
-    const msg = Array.prototype.join.call(arguments, ' ')
+  log_info (...args: string[]): void {
+    const msg = args.join(' ')
     console.log(msg)
     if (this.message_id) {
       const p = document.createElement('p')
@@ -375,8 +385,8 @@ export class SpiceConn {
     }
   }
 
-  log_warn (): void {
-    const msg = Array.prototype.join.call(arguments, ' ')
+  log_warn (...args: string[]): void {
+    const msg = args.join(' ')
     console.log('WARNING: ' + msg)
     if (this.message_id) {
       const p = document.createElement('p')
@@ -389,8 +399,8 @@ export class SpiceConn {
     }
   }
 
-  log_err (): void {
-    const msg = Array.prototype.join.call(arguments, ' ')
+  log_err (...args: string[]): void {
+    const msg = args.join(' ')
     console.log('ERROR: ' + msg)
     if (this.message_id) {
       const p = document.createElement('p')

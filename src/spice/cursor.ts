@@ -50,7 +50,7 @@ export class SpiceCursorConn extends SpiceConn {
     }
 
     if (msg.type == Constants.SPICE_MSG_CURSOR_SET) {
-      const cursor_set = new SpiceMsgCursorSet(msg.data)
+      const cursor_set = new SpiceMsgCursorSet(msg.data) as any
       DEBUG > 1 && console.log('SpiceMsgCursorSet')
       if (cursor_set.flags & Constants.SPICE_CURSOR_FLAGS_NONE) {
         document.getElementById(this.parent.screen_id).style.cursor = 'none'

@@ -3,7 +3,7 @@ import { code_to_scancode } from '../../src/spice/code_to_scancode.ts';
 describe('code_to_scancode', () => {
   test('should export all required scancodes', () => {
     expect(code_to_scancode).toBeDefined();
-    expect(Array.isArray(code_to_scancode)).toBe(true);
+    expect(typeof code_to_scancode).toBe('object');
   });
 
   test('should have correct values for function keys', () => {

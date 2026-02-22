@@ -35,7 +35,7 @@ const SHA_DIGEST_LENGTH = 20
 function MGF1 (mask: number[], seed: number[]): number {
   let i = 0; let j = 0; let outlen = 0
   for (i = 0, outlen = 0; outlen < mask.length; i++) {
-    let combo_buf = new String()
+    let combo_buf = ''
 
     for (j = 0; j < seed.length; j++) {
       combo_buf += String.fromCharCode(seed[j])
@@ -104,7 +104,7 @@ function RSA_padding_add_PKCS1_OAEP (tolen: number, from: string, param: string)
     seed[i] ^= seedmask[i]
   }
 
-  let ret = new String()
+  let ret = ''
   ret += String.fromCharCode(0)
   for (i = 0; i < seed.length; i++) {
     ret += String.fromCharCode(seed[i])
@@ -248,7 +248,7 @@ export function rsa_encrypt (rsa: RSAKey, str: string): number[] | null {
   if (!rsa.n) {
     return null
   }
-  const oaep = RSA_padding_add_PKCS1_OAEP((rsa.n.bitLength() + 7) >> 3, str)
+  const oaep = RSA_padding_add_PKCS1_OAEP((rsa.n.bitLength() + 7) >> 3, str, '')
   if (!oaep) {
     return null
   }
