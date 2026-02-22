@@ -24,7 +24,7 @@
 **  the mini message format.
 **-------------------------------------------------------------------------------------- */
 
-import { DEBUG, combine_array_buffers } from './utils'
+import { DEBUG } from './utils'
 
 export class SpiceWireReader {
   sc: any
@@ -43,62 +43,52 @@ export class SpiceWireReader {
     this.sc.ws.addEventListener('message', wire_blob_catcher)
   }
 
-  /* ------------------------------------------------------------------------
-    **  Process messages coming in from our WebSocket
-    **---------------------------------------------------------------------- */
   inbound (mb: ArrayBuffer): void {
-    /* Just buffer if we don't need anything yet */
     if (this.needed == 0) {
       this.buffers.push(mb)
       this.size += mb.byteLength
       return
     }
 
-    /* Optimization - if we have just one inbound block, and it's
-            suitable for our needs, just use it.  */
     if (this.buffers.length == 0 && mb.byteLength >= this.needed) {
       if (mb.byteLength > this.needed) {
         this.size = mb.byteLength - this.needed
         this.buffers.push(mb.slice(this.needed))
         mb = mb.slice(0, this.needed)
       }
-      this.callback.call(this.sc, mb,
+      this.callback.call(this.sc, [mb],
         this.saved_msg_header || undefined)
     } else {
       this.buffers.push(mb)
       this.size += mb.byteLength
     }
 
-    /* Optimization - All it takes is one combine  */
     while (this.size >= this.needed) {
-      let count = 0
-      const frame = new ArrayBuffer(this.needed)
-      const view = new Uint8Array(frame)
+      const neededBuffers: ArrayBuffer[] = []
+      let collected = 0
 
-      while (count < frame.byteLength && this.buffers.length > 0) {
+      while (collected < this.needed && this.buffers.length > 0) {
         const buf = this.buffers.shift()
         if (!buf) {
           return
         }
-        const uint8 = new Uint8Array(buf)
-        const step = frame.byteLength - count
 
-        /* Optimization - use dataview.set() instead of combine_array_buffers() */
-        if (uint8.length <= step) {
-          view.set(uint8, count)
-          count += uint8.length
-          this.size -= uint8.length
+        const remaining = this.needed - collected
+
+        if (buf.byteLength <= remaining) {
+          neededBuffers.push(buf)
+          collected += buf.byteLength
+          this.size -= buf.byteLength
         } else {
-          const temp = uint8.slice(0, step)
-          view.set(temp, count)
-          count += temp.length
-          this.size -= temp.length
+          neededBuffers.push(buf.slice(0, remaining))
+          collected += remaining
+          this.size -= remaining
 
-          this.buffers.unshift(uint8.slice(step).buffer)
+          this.buffers.unshift(buf.slice(remaining))
         }
       }
 
-      this.callback.call(this.sc, frame, this.saved_msg_header || undefined)
+      this.callback.call(this.sc, neededBuffers, this.saved_msg_header || undefined)
     }
   }
 

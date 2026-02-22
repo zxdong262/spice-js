@@ -1223,11 +1223,23 @@ class SpiceQuic {
   width: number = 0
   height: number = 0
 
-  from_dv (dv: DataView, at: number, mb: ArrayBuffer): number {
+  from_dv (dv: DataView, at: number, mb: ArrayBuffer | ArrayBuffer[]): number {
     if (!encoder) { throw ('quic: no quic encoder') }
     this.data_size = dv.getUint32(at, true)
     at += 4
-    const buf = new Uint8Array(mb.slice(at))
+    let buf: Uint8Array
+    if (Array.isArray(mb)) {
+      const totalLength = mb.reduce((sum, b) => sum + b.byteLength, 0)
+      buf = new Uint8Array(totalLength)
+      let offset = 0
+      for (const b of mb) {
+        buf.set(new Uint8Array(b), offset)
+        offset += b.byteLength
+      }
+      buf = buf.slice(at)
+    } else {
+      buf = new Uint8Array(mb.slice(at))
+    }
     this.outptr = encoder.simple_quic_decode(buf)
     if (this.outptr) {
       this.type = encoder.type

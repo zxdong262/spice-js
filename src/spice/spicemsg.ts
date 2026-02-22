@@ -43,13 +43,15 @@ import {
   keycode_to_end_scan
 } from './utils'
 
+type BufferInput = ArrayBuffer | ArrayBuffer[]
+
 class SpiceLinkHeader {
   magic: string
   major_version: number
   minor_version: number
   size: number
 
-  constructor (a?: ArrayBuffer, at?: number) {
+  constructor (a?: BufferInput, at?: number) {
     this.magic = Constants.SPICE_MAGIC
     this.major_version = Constants.SPICE_VERSION_MAJOR
     this.minor_version = Constants.SPICE_VERSION_MINOR
@@ -57,7 +59,7 @@ class SpiceLinkHeader {
     if (a !== undefined) { this.from_buffer(a, at) }
   }
 
-  from_buffer (a: ArrayBuffer, at?: number): void {
+  from_buffer (a: BufferInput, at?: number): void {
     at = at || 0
     const dv = new SpiceDataView(a)
     this.magic = ''
@@ -92,7 +94,7 @@ class SpiceLinkMess {
   common_caps: number[]
   channel_caps: number[]
 
-  constructor (a?: ArrayBuffer, at?: number) {
+  constructor (a?: BufferInput, at?: number) {
     this.connection_id = 0
     this.channel_type = 0
     this.channel_id = 0
@@ -102,7 +104,7 @@ class SpiceLinkMess {
     if (a !== undefined) { this.from_buffer(a, at) }
   }
 
-  from_buffer (a: ArrayBuffer, at?: number): void {
+  from_buffer (a: BufferInput, at?: number): void {
     at = at || 0
     let i: number
     const orig_at = at
@@ -158,7 +160,7 @@ class SpiceLinkReply {
   common_caps: number[]
   channel_caps: number[]
 
-  constructor (a?: ArrayBuffer, at?: number) {
+  constructor (a?: BufferInput, at?: number) {
     this.error = 0
     this.pub_key = undefined
     this.common_caps = []
@@ -167,7 +169,7 @@ class SpiceLinkReply {
     if (a !== undefined) { this.from_buffer(a, at) }
   }
 
-  from_buffer (a: ArrayBuffer, at?: number): void {
+  from_buffer (a: BufferInput, at?: number): void {
     at = at || 0
     let i: number
     const orig_at = at
@@ -222,12 +224,12 @@ class SpiceLinkAuthTicket {
 class SpiceLinkAuthReply {
   auth_code: number
 
-  constructor (a?: ArrayBuffer, at?: number) {
+  constructor (a?: BufferInput, at?: number) {
     this.auth_code = 0
     if (a !== undefined) { this.from_buffer(a, at) }
   }
 
-  from_buffer (a: ArrayBuffer, at?: number): void {
+  from_buffer (a: BufferInput, at?: number): void {
     at = at || 0
     const dv = new SpiceDataView(a)
     this.auth_code = dv.getUint32(at, true); at += 4
@@ -243,21 +245,21 @@ class SpiceMiniData {
   size: number
   data: ArrayBuffer | undefined
 
-  constructor (a?: ArrayBuffer, at?: number) {
+  constructor (a?: BufferInput, at?: number) {
     this.type = 0
     this.size = 0
     this.data = undefined
     if (a !== undefined) { this.from_buffer(a, at) }
   }
 
-  from_buffer (a: ArrayBuffer, at?: number): void {
+  from_buffer (a: BufferInput, at?: number): void {
     at = at || 0
     let i: number
     const dv = new SpiceDataView(a)
     this.type = dv.getUint16(at, true); at += 2
     this.size = dv.getUint32(at, true); at += 4
-    if (a.byteLength > at) {
-      this.data = a.slice(at)
+    if (dv.u8.length > at) {
+      this.data = dv.sliceData(at)
       at += this.data.byteLength
     }
   }
@@ -290,13 +292,13 @@ class SpiceMsgChannels {
   num_of_channels: number
   channels: SpiceChannelId[]
 
-  constructor (a?: ArrayBuffer, at?: number) {
+  constructor (a?: BufferInput, at?: number) {
     this.num_of_channels = 0
     this.channels = []
     if (a !== undefined) { this.from_buffer(a, at) }
   }
 
-  from_buffer (a: ArrayBuffer, at?: number): void {
+  from_buffer (a: BufferInput, at?: number): void {
     at = at || 0
     let i: number
     const dv = new SpiceDataView(a)
@@ -415,11 +417,11 @@ class SpiceMsgMainInit {
   multi_media_time: number
   ram_hint: number
 
-  constructor (a: ArrayBuffer, at?: number) {
+  constructor (a: BufferInput, at?: number) {
     this.from_buffer(a, at)
   }
 
-  from_buffer (a: ArrayBuffer, at?: number): void {
+  from_buffer (a: BufferInput, at?: number): void {
     at = at || 0
     const dv = new SpiceDataView(a)
     this.session_id = dv.getUint32(at, true); at += 4
@@ -437,11 +439,11 @@ class SpiceMsgMainMouseMode {
   supported_modes: number
   current_mode: number
 
-  constructor (a: ArrayBuffer, at?: number) {
+  constructor (a: BufferInput, at?: number) {
     this.from_buffer(a, at)
   }
 
-  from_buffer (a: ArrayBuffer, at?: number): void {
+  from_buffer (a: BufferInput, at?: number): void {
     at = at || 0
     const dv = new SpiceDataView(a)
     this.supported_modes = dv.getUint16(at, true); at += 2
@@ -456,19 +458,19 @@ class SpiceMsgMainAgentData {
   size: number
   data: ArrayBuffer | undefined
 
-  constructor (a: ArrayBuffer, at?: number) {
+  constructor (a: BufferInput, at?: number) {
     this.from_buffer(a, at)
   }
 
-  from_buffer (a: ArrayBuffer, at?: number): void {
+  from_buffer (a: BufferInput, at?: number): void {
     at = at || 0
     const dv = new SpiceDataView(a)
     this.protocol = dv.getUint32(at, true); at += 4
     this.type = dv.getUint32(at, true); at += 4
     this.opaque = dv.getUint64(at, true); at += 8
     this.size = dv.getUint32(at, true); at += 4
-    if (a.byteLength > at) {
-      this.data = a.slice(at)
+    if (dv.u8.length > at) {
+      this.data = dv.sliceData(at)
       at += this.data.byteLength
     }
   }
@@ -477,11 +479,11 @@ class SpiceMsgMainAgentData {
 class SpiceMsgMainAgentTokens {
   num_tokens: number
 
-  constructor (a: ArrayBuffer, at?: number) {
+  constructor (a: BufferInput, at?: number) {
     this.from_buffer(a, at)
   }
 
-  from_buffer (a: ArrayBuffer, at?: number): void {
+  from_buffer (a: BufferInput, at?: number): void {
     at = at || 0
     const dv = new SpiceDataView(a)
     this.num_tokens = dv.getUint32(at, true); at += 4
@@ -492,11 +494,11 @@ class SpiceMsgSetAck {
   generation: number
   window: number
 
-  constructor (a: ArrayBuffer, at?: number) {
+  constructor (a: BufferInput, at?: number) {
     this.from_buffer(a, at)
   }
 
-  from_buffer (a: ArrayBuffer, at?: number): void {
+  from_buffer (a: BufferInput, at?: number): void {
     at = at || 0
     const dv = new SpiceDataView(a)
     this.generation = dv.getUint32(at, true); at += 4
@@ -742,11 +744,11 @@ class SpiceMsgNotify {
   message_len: number
   message: string
 
-  constructor (a: ArrayBuffer, at?: number) {
+  constructor (a: BufferInput, at?: number) {
     this.from_buffer(a, at)
   }
 
-  from_buffer (a: ArrayBuffer, at?: number): void {
+  from_buffer (a: BufferInput, at?: number): void {
     at = at || 0
     let i: number
     const dv = new SpiceDataView(a)
@@ -795,7 +797,7 @@ class SpiceMsgDisplayBase {
   box: SpiceRect
   clip: SpiceClip
 
-  from_dv (dv: SpiceDataView, at: number, mb: ArrayBuffer): number {
+  from_dv (dv: SpiceDataView, at: number, mb: BufferInput): number {
     this.surface_id = dv.getUint32(at, true); at += 4
     this.box = new SpiceRect()
     at = this.box.from_dv(dv, at, mb)
@@ -808,11 +810,11 @@ class SpiceMsgDisplayDrawCopy {
   base: SpiceMsgDisplayBase
   data: SpiceCopy
 
-  constructor (a: ArrayBuffer, at?: number) {
+  constructor (a: BufferInput, at?: number) {
     this.from_buffer(a, at)
   }
 
-  from_buffer (a: ArrayBuffer, at?: number): number {
+  from_buffer (a: BufferInput, at?: number): number {
     at = at || 0
     const dv = new SpiceDataView(a)
     this.base = new SpiceMsgDisplayBase()
@@ -826,11 +828,11 @@ class SpiceMsgDisplayDrawFill {
   base: SpiceMsgDisplayBase
   data: SpiceFill
 
-  constructor (a: ArrayBuffer, at?: number) {
+  constructor (a: BufferInput, at?: number) {
     this.from_buffer(a, at)
   }
 
-  from_buffer (a: ArrayBuffer, at?: number): number {
+  from_buffer (a: BufferInput, at?: number): number {
     at = at || 0
     const dv = new SpiceDataView(a)
     this.base = new SpiceMsgDisplayBase()
@@ -844,11 +846,11 @@ class SpiceMsgDisplayCopyBits {
   base: SpiceMsgDisplayBase
   src_pos: SpicePoint
 
-  constructor (a: ArrayBuffer, at?: number) {
+  constructor (a: BufferInput, at?: number) {
     this.from_buffer(a, at)
   }
 
-  from_buffer (a: ArrayBuffer, at?: number): number {
+  from_buffer (a: BufferInput, at?: number): number {
     at = at || 0
     const dv = new SpiceDataView(a)
     this.base = new SpiceMsgDisplayBase()
@@ -861,11 +863,11 @@ class SpiceMsgDisplayCopyBits {
 class SpiceMsgSurfaceCreate {
   surface: SpiceSurface
 
-  constructor (a: ArrayBuffer, at?: number) {
+  constructor (a: BufferInput, at?: number) {
     this.from_buffer(a, at)
   }
 
-  from_buffer (a: ArrayBuffer, at?: number): number {
+  from_buffer (a: BufferInput, at?: number): number {
     at = at || 0
     const dv = new SpiceDataView(a)
     this.surface = new SpiceSurface()
@@ -876,11 +878,11 @@ class SpiceMsgSurfaceCreate {
 class SpiceMsgSurfaceDestroy {
   surface_id: number
 
-  constructor (a: ArrayBuffer, at?: number) {
+  constructor (a: BufferInput, at?: number) {
     this.from_buffer(a, at)
   }
 
-  from_buffer (a: ArrayBuffer, at?: number): void {
+  from_buffer (a: BufferInput, at?: number): void {
     at = at || 0
     const dv = new SpiceDataView(a)
     this.surface_id = dv.getUint32(at, true); at += 4
@@ -890,11 +892,11 @@ class SpiceMsgSurfaceDestroy {
 class SpiceMsgInputsInit {
   keyboard_modifiers: number
 
-  constructor (a: ArrayBuffer, at?: number) {
+  constructor (a: BufferInput, at?: number) {
     this.from_buffer(a, at)
   }
 
-  from_buffer (a: ArrayBuffer, at?: number): number {
+  from_buffer (a: BufferInput, at?: number): number {
     at = at || 0
     const dv = new SpiceDataView(a)
     this.keyboard_modifiers = dv.getUint16(at, true); at += 2
@@ -905,11 +907,11 @@ class SpiceMsgInputsInit {
 class SpiceMsgInputsKeyModifiers {
   keyboard_modifiers: number
 
-  constructor (a: ArrayBuffer, at?: number) {
+  constructor (a: BufferInput, at?: number) {
     this.from_buffer(a, at)
   }
 
-  from_buffer (a: ArrayBuffer, at?: number): number {
+  from_buffer (a: BufferInput, at?: number): number {
     at = at || 0
     const dv = new SpiceDataView(a)
     this.keyboard_modifiers = dv.getUint16(at, true); at += 2
@@ -924,11 +926,11 @@ class SpiceMsgCursorInit {
   visible: number
   cursor: SpiceCursor
 
-  constructor (a: ArrayBuffer, at?: number, mb?: ArrayBuffer) {
+  constructor (a: BufferInput, at?: number, mb?: BufferInput) {
     this.from_buffer(a, at, mb)
   }
 
-  from_buffer (a: ArrayBuffer, at?: number, mb?: ArrayBuffer): number {
+  from_buffer (a: BufferInput, at?: number, mb?: BufferInput): number {
     at = at || 0
     const dv = new SpiceDataView(a)
     this.position = new SpicePoint16()
@@ -945,16 +947,16 @@ class SpiceMsgPlaybackData {
   time: number
   data: ArrayBuffer | undefined
 
-  constructor (a: ArrayBuffer, at?: number, mb?: ArrayBuffer) {
+  constructor (a: BufferInput, at?: number, mb?: BufferInput) {
     this.from_buffer(a, at, mb)
   }
 
-  from_buffer (a: ArrayBuffer, at?: number, mb?: ArrayBuffer): number {
+  from_buffer (a: BufferInput, at?: number, mb?: BufferInput): number {
     at = at || 0
     const dv = new SpiceDataView(a)
     this.time = dv.getUint32(at, true); at += 4
-    if (a.byteLength > at) {
-      this.data = a.slice(at)
+    if (dv.u8.length > at) {
+      this.data = dv.sliceData(at)
       at += this.data.byteLength
     }
     return at
@@ -966,17 +968,17 @@ class SpiceMsgPlaybackMode {
   mode: number
   data: ArrayBuffer | undefined
 
-  constructor (a: ArrayBuffer, at?: number, mb?: ArrayBuffer) {
+  constructor (a: BufferInput, at?: number, mb?: BufferInput) {
     this.from_buffer(a, at, mb)
   }
 
-  from_buffer (a: ArrayBuffer, at?: number, mb?: ArrayBuffer): number {
+  from_buffer (a: BufferInput, at?: number, mb?: BufferInput): number {
     at = at || 0
     const dv = new SpiceDataView(a)
     this.time = dv.getUint32(at, true); at += 4
     this.mode = dv.getUint16(at, true); at += 2
-    if (a.byteLength > at) {
-      this.data = a.slice(at)
+    if (dv.u8.length > at) {
+      this.data = dv.sliceData(at)
       at += this.data.byteLength
     }
     return at
@@ -989,11 +991,11 @@ class SpiceMsgPlaybackStart {
   frequency: number
   time: number
 
-  constructor (a: ArrayBuffer, at?: number, mb?: ArrayBuffer) {
+  constructor (a: BufferInput, at?: number, mb?: BufferInput) {
     this.from_buffer(a, at, mb)
   }
 
-  from_buffer (a: ArrayBuffer, at?: number, mb?: ArrayBuffer): number {
+  from_buffer (a: BufferInput, at?: number, mb?: BufferInput): number {
     at = at || 0
     const dv = new SpiceDataView(a)
     this.channels = dv.getUint32(at, true); at += 4
@@ -1009,11 +1011,11 @@ class SpiceMsgCursorSet {
   visible: number
   cursor: SpiceCursor
 
-  constructor (a: ArrayBuffer, at?: number, mb?: ArrayBuffer) {
+  constructor (a: BufferInput, at?: number, mb?: BufferInput) {
     this.from_buffer(a, at, mb)
   }
 
-  from_buffer (a: ArrayBuffer, at?: number, mb?: ArrayBuffer): number {
+  from_buffer (a: BufferInput, at?: number, mb?: BufferInput): number {
     at = at || 0
     const dv = new SpiceDataView(a)
     this.position = new SpicePoint16()
@@ -1075,11 +1077,11 @@ class SpiceMsgDisplayStreamCreate {
   dest: SpiceRect
   clip: SpiceClip
 
-  constructor (a: ArrayBuffer, at?: number) {
+  constructor (a: BufferInput, at?: number) {
     this.from_buffer(a, at)
   }
 
-  from_buffer (a: ArrayBuffer, at?: number): void {
+  from_buffer (a: BufferInput, at?: number): void {
     at = at || 0
     const dv = new SpiceDataView(a)
     this.surface_id = dv.getUint32(at, true); at += 4
@@ -1103,7 +1105,7 @@ class SpiceStreamDataHeader {
   id: number
   multi_media_time: number
 
-  from_dv (dv: SpiceDataView, at: number, mb: ArrayBuffer): number {
+  from_dv (dv: SpiceDataView, at: number, mb: BufferInput): number {
     this.id = dv.getUint32(at, true); at += 4
     this.multi_media_time = dv.getUint32(at, true); at += 4
     return at
@@ -1115,11 +1117,11 @@ class SpiceMsgDisplayStreamData {
   data_size: number
   data: Uint8Array
 
-  constructor (a: ArrayBuffer, at?: number) {
+  constructor (a: BufferInput, at?: number) {
     this.from_buffer(a, at)
   }
 
-  from_buffer (a: ArrayBuffer, at?: number): void {
+  from_buffer (a: BufferInput, at?: number): void {
     at = at || 0
     const dv = new SpiceDataView(a)
     this.base = new SpiceStreamDataHeader()
@@ -1137,11 +1139,11 @@ class SpiceMsgDisplayStreamDataSized {
   data_size: number
   data: Uint8Array
 
-  constructor (a: ArrayBuffer, at?: number) {
+  constructor (a: BufferInput, at?: number) {
     this.from_buffer(a, at)
   }
 
-  from_buffer (a: ArrayBuffer, at?: number): void {
+  from_buffer (a: BufferInput, at?: number): void {
     at = at || 0
     const dv = new SpiceDataView(a)
     this.base = new SpiceStreamDataHeader()
@@ -1159,11 +1161,11 @@ class SpiceMsgDisplayStreamClip {
   id: number
   clip: SpiceClip
 
-  constructor (a: ArrayBuffer, at?: number) {
+  constructor (a: BufferInput, at?: number) {
     this.from_buffer(a, at)
   }
 
-  from_buffer (a: ArrayBuffer, at?: number): void {
+  from_buffer (a: BufferInput, at?: number): void {
     at = at || 0
     const dv = new SpiceDataView(a)
     this.id = dv.getUint32(at, true); at += 4
@@ -1175,11 +1177,11 @@ class SpiceMsgDisplayStreamClip {
 class SpiceMsgDisplayStreamDestroy {
   id: number
 
-  constructor (a: ArrayBuffer, at?: number) {
+  constructor (a: BufferInput, at?: number) {
     this.from_buffer(a, at)
   }
 
-  from_buffer (a: ArrayBuffer, at?: number): void {
+  from_buffer (a: BufferInput, at?: number): void {
     at = at || 0
     const dv = new SpiceDataView(a)
     this.id = dv.getUint32(at, true); at += 4
@@ -1192,11 +1194,11 @@ class SpiceMsgDisplayStreamActivateReport {
   max_window_size: number
   timeout_ms: number
 
-  constructor (a: ArrayBuffer, at?: number) {
+  constructor (a: BufferInput, at?: number) {
     this.from_buffer(a, at)
   }
 
-  from_buffer (a: ArrayBuffer, at?: number): void {
+  from_buffer (a: BufferInput, at?: number): void {
     at = at || 0
     const dv = new SpiceDataView(a)
     this.stream_id = dv.getUint32(at, true); at += 4
@@ -1252,19 +1254,19 @@ class SpiceMsgDisplayInvalList {
   count: number
   resources: Array<{ type: number, id: number }>
 
-  constructor (a: ArrayBuffer, at?: number) {
+  constructor (a: BufferInput, at?: number) {
     this.count = 0
     this.resources = []
     this.from_buffer(a, at)
   }
 
-  from_buffer (a: ArrayBuffer, at?: number): void {
+  from_buffer (a: BufferInput, at?: number): void {
     let i: number
     at = at || 0
     const dv = new SpiceDataView(a)
     this.count = dv.getUint16(at, true); at += 2
     for (i = 0; i < this.count; i++) {
-      this.resources[i] = {}
+      this.resources[i] = { type: 0, id: 0 }
       this.resources[i].type = dv.getUint8(at, true); at++
       this.resources[i].id = dv.getUint64(at, true); at += 8
     }
@@ -1275,17 +1277,17 @@ class SpiceMsgPortInit {
   opened: number
   name: ArrayBuffer
 
-  constructor (a: ArrayBuffer, at?: number) {
+  constructor (a: BufferInput, at?: number) {
     this.from_buffer(a, at)
   }
 
-  from_buffer (a: ArrayBuffer, at?: number): void {
+  from_buffer (a: BufferInput, at?: number): void {
     at = at || 0
     const dv = new SpiceDataView(a)
     const namesize = dv.getUint32(at, true); at += 4
     const offset = dv.getUint32(at, true); at += 4
     this.opened = dv.getUint8(at, true); at += 1
-    this.name = a.slice(offset, offset + namesize - 1)
+    this.name = dv.sliceData(offset, offset + namesize - 1)
   }
 }
 

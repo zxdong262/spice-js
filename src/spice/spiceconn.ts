@@ -28,6 +28,7 @@
 
 import { Constants } from './enums'
 import { SpiceWireReader } from './wire'
+import { SpiceDataView } from './spicedataview'
 import {
   SpiceLinkHeader,
   SpiceLinkMess,
@@ -195,8 +196,9 @@ class SpiceConn {
     this.ws.send(mb)
   }
 
-  process_inbound (mb: ArrayBuffer, saved_header: any): void {
-    DEBUG > 2 && console.log(this.type + ': processing message of size ' + mb.byteLength + '; state is ' + this.state)
+  process_inbound (mb: ArrayBuffer | ArrayBuffer[], saved_header: any): void {
+    const totalLength = Array.isArray(mb) ? mb.reduce((sum, buf) => sum + buf.byteLength, 0) : mb.byteLength
+    DEBUG > 2 && console.log(this.type + ': processing message of size ' + totalLength + '; state is ' + this.state)
     if (this.state == 'ready') {
       if (saved_header == undefined) {
         const msg = new SpiceMiniData(mb)
@@ -218,7 +220,7 @@ class SpiceConn {
           this.wire_reader.save_header(msg)
         }
       } else {
-        saved_header.data = mb
+        saved_header.data = Array.isArray(mb) ? new SpiceDataView(mb).sliceData(0) : mb
         this.process_message(saved_header)
         this.wire_reader.request(SpiceMiniData.prototype.buffer_size())
         this.wire_reader.save_header(undefined)
@@ -230,13 +232,11 @@ class SpiceConn {
         var e = new Error('Error: magic mismatch: ' + this.reply_hdr.magic)
         this.report_error(e)
       } else {
-        // FIXME - Determine major/minor version requirements
         this.wire_reader.request(this.reply_hdr.size)
         this.state = 'link'
       }
     } else if (this.state == 'link') {
       this.reply_link = new SpiceLinkReply(mb)
-      // FIXME - Screen the caps - require minihdr at least, right?
       if (this.reply_link.error) {
         this.state = 'error'
         var e = new Error('Error: reply link error ' + this.reply_link.error)
@@ -252,7 +252,6 @@ class SpiceConn {
         DEBUG > 0 && console.log(this.type + ': Connected')
 
         if (this.type == Constants.SPICE_CHANNEL_DISPLAY) {
-          // FIXME - pixmap and glz dictionary config info?
           const dinit = new SpiceMsgcDisplayInit()
           const reply = new SpiceMiniData()
           reply.build_msg(Constants.SPICE_MSGC_DISPLAY_INIT, dinit)

@@ -28,11 +28,13 @@ import { Constants } from './enums'
 import { SpiceQuic } from './quic'
 import { SpiceDataView } from './spicedataview'
 
+type BufferInput = ArrayBuffer | ArrayBuffer[]
+
 export class SpiceChannelId {
   type: number = 0
   id: number = 0
 
-  from_dv (dv: DataView | SpiceDataView, at: number, mb: ArrayBuffer): number {
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: BufferInput): number {
     this.type = dv.getUint8(at, true); at++
     this.id = dv.getUint8(at, true); at++
     return at
@@ -45,7 +47,7 @@ export class SpiceRect {
   bottom: number = 0
   right: number = 0
 
-  from_dv (dv: DataView | SpiceDataView, at: number, mb: ArrayBuffer): number {
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: BufferInput): number {
     this.top = dv.getUint32(at, true); at += 4
     this.left = dv.getUint32(at, true); at += 4
     this.bottom = dv.getUint32(at, true); at += 4
@@ -66,7 +68,7 @@ export class SpiceClipRects {
   num_rects: number = 0
   rects: SpiceRect[] = []
 
-  from_dv (dv: DataView | SpiceDataView, at: number, mb: ArrayBuffer): number {
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: BufferInput): number {
     let i: number
     this.num_rects = dv.getUint32(at, true); at += 4
     if (this.num_rects > 0) {
@@ -84,7 +86,7 @@ export class SpiceClip {
   type: number = 0
   rects: SpiceClipRects | undefined
 
-  from_dv (dv: DataView | SpiceDataView, at: number, mb: ArrayBuffer): number {
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: BufferInput): number {
     this.type = dv.getUint8(at, true); at++
     if (this.type == Constants.SPICE_CLIP_TYPE_RECTS) {
       this.rects = new SpiceClipRects()
@@ -101,7 +103,7 @@ export class SpiceImageDescriptor {
   width: number = 0
   height: number = 0
 
-  from_dv (dv: DataView | SpiceDataView, at: number, mb: ArrayBuffer): number {
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: BufferInput): number {
     this.id = dv.getUint64(at, true); at += 8
     this.type = dv.getUint8(at, true); at++
     this.flags = dv.getUint8(at, true); at++
@@ -116,7 +118,7 @@ export class SpicePalette {
   num_ents: number = 0
   ents: number[] = []
 
-  from_dv (dv: DataView | SpiceDataView, at: number, mb: ArrayBuffer): number {
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: BufferInput): number {
     let i: number
     this.unique = dv.getUint64(at, true); at += 8
     this.num_ents = dv.getUint16(at, true); at += 2
@@ -126,6 +128,14 @@ export class SpicePalette {
     }
     return at
   }
+}
+
+function sliceBuffer (mb: BufferInput, start: number, end?: number): ArrayBuffer {
+  if (Array.isArray(mb)) {
+    const dv = new SpiceDataView(mb)
+    return dv.sliceData(start, end)
+  }
+  return mb.slice(start, end)
 }
 
 export class SpiceBitmap {
@@ -138,7 +148,7 @@ export class SpiceBitmap {
   palette: SpicePalette | null = null
   data: ArrayBuffer = new ArrayBuffer(0)
 
-  from_dv (dv: DataView | SpiceDataView, at: number, mb: ArrayBuffer): number {
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: BufferInput): number {
     this.format = dv.getUint8(at, true); at++
     this.flags = dv.getUint8(at, true); at++
     this.x = dv.getUint32(at, true); at += 4
@@ -155,9 +165,7 @@ export class SpiceBitmap {
         this.palette.from_dv(dv, offset, mb)
       }
     }
-    // FIXME - should probably constrain this to the offset
-    //          of palette, if non zero
-    this.data = mb.slice(at)
+    this.data = sliceBuffer(mb, at)
     at += this.data.byteLength
     return at
   }
@@ -172,7 +180,7 @@ export class SpiceImage {
   jpeg_alpha?: any
   quic?: SpiceQuic
 
-  from_dv (dv: DataView | SpiceDataView, at: number, mb: ArrayBuffer): number {
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: BufferInput): number {
     this.descriptor = new SpiceImageDescriptor()
     at = this.descriptor.from_dv(dv, at, mb)
 
@@ -186,7 +194,6 @@ export class SpiceImage {
       }
       at += 4
 
-      // NOTE:  The endian change is *correct*
       this.lz_rgb.version = dv.getUint32(at); at += 4
       this.lz_rgb.type = dv.getUint32(at); at += 4
       this.lz_rgb.width = dv.getUint32(at); at += 4
@@ -196,7 +203,7 @@ export class SpiceImage {
 
       var header_size = at - initial_at
 
-      this.lz_rgb.data = mb.slice(at, this.lz_rgb.length + at - header_size)
+      this.lz_rgb.data = sliceBuffer(mb, at, this.lz_rgb.length + at - header_size)
       at += this.lz_rgb.data.byteLength
     }
 
@@ -212,7 +219,7 @@ export class SpiceImage {
     if (this.descriptor.type == Constants.SPICE_IMAGE_TYPE_JPEG) {
       this.jpeg = new Object()
       this.jpeg.data_size = dv.getUint32(at, true); at += 4
-      this.jpeg.data = mb.slice(at)
+      this.jpeg.data = sliceBuffer(mb, at)
       at += this.jpeg.data.byteLength
     }
 
@@ -221,9 +228,8 @@ export class SpiceImage {
       this.jpeg_alpha.flags = dv.getUint8(at, true); at += 1
       this.jpeg_alpha.jpeg_size = dv.getUint32(at, true); at += 4
       this.jpeg_alpha.data_size = dv.getUint32(at, true); at += 4
-      this.jpeg_alpha.data = mb.slice(at, this.jpeg_alpha.jpeg_size + at)
+      this.jpeg_alpha.data = sliceBuffer(mb, at, this.jpeg_alpha.jpeg_size + at)
       at += this.jpeg_alpha.data.byteLength
-      // Alpha channel is an LZ image
       this.jpeg_alpha.alpha = new Object()
       this.jpeg_alpha.alpha.length = this.jpeg_alpha.data_size - this.jpeg_alpha.jpeg_size
       var initial_at = at
@@ -233,7 +239,6 @@ export class SpiceImage {
       }
       at += 4
 
-      // NOTE:  The endian change is *correct*
       this.jpeg_alpha.alpha.version = dv.getUint32(at); at += 4
       this.jpeg_alpha.alpha.type = dv.getUint32(at); at += 4
       this.jpeg_alpha.alpha.width = dv.getUint32(at); at += 4
@@ -243,7 +248,7 @@ export class SpiceImage {
 
       var header_size = at - initial_at
 
-      this.jpeg_alpha.alpha.data = mb.slice(at, this.jpeg_alpha.alpha.length + at - header_size)
+      this.jpeg_alpha.alpha.data = sliceBuffer(mb, at, this.jpeg_alpha.alpha.length + at - header_size)
       at += this.jpeg_alpha.alpha.data.byteLength
     }
 
@@ -260,7 +265,7 @@ export class SpiceQMask {
   pos: SpicePoint = new SpicePoint()
   bitmap: SpiceImage | null = null
 
-  from_dv (dv: DataView | SpiceDataView, at: number, mb: ArrayBuffer): number {
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: BufferInput): number {
     this.flags = dv.getUint8(at, true); at++
     this.pos = new SpicePoint()
     at = this.pos.from_dv(dv, at, mb)
@@ -279,7 +284,7 @@ export class SpicePattern {
   pat: SpiceImage | null = null
   pos: SpicePoint = new SpicePoint()
 
-  from_dv (dv: DataView | SpiceDataView, at: number, mb: ArrayBuffer): number {
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: BufferInput): number {
     const offset = dv.getUint32(at, true); at += 4
     if (offset == 0) {
       this.pat = null
@@ -298,7 +303,7 @@ export class SpiceBrush {
   color?: number
   pattern?: SpicePattern
 
-  from_dv (dv: DataView | SpiceDataView, at: number, mb: ArrayBuffer): number {
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: BufferInput): number {
     this.type = dv.getUint8(at, true); at++
     if (this.type == Constants.SPICE_BRUSH_TYPE_SOLID) {
       this.color = dv.getUint32(at, true); at += 4
@@ -315,7 +320,7 @@ export class SpiceFill {
   rop_descriptor: number = 0
   mask: SpiceQMask = new SpiceQMask()
 
-  from_dv (dv: DataView | SpiceDataView, at: number, mb: ArrayBuffer): number {
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: BufferInput): number {
     this.brush = new SpiceBrush()
     at = this.brush.from_dv(dv, at, mb)
     this.rop_descriptor = dv.getUint16(at, true); at += 2
@@ -331,7 +336,7 @@ export class SpiceCopy {
   scale_mode: number = 0
   mask: SpiceQMask = new SpiceQMask()
 
-  from_dv (dv: DataView | SpiceDataView, at: number, mb: ArrayBuffer): number {
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: BufferInput): number {
     const offset = dv.getUint32(at, true); at += 4
     if (offset == 0) {
       this.src_bitmap = null
@@ -352,7 +357,7 @@ export class SpicePoint16 {
   x: number = 0
   y: number = 0
 
-  from_dv (dv: DataView | SpiceDataView, at: number, mb: ArrayBuffer): number {
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: BufferInput): number {
     this.x = dv.getUint16(at, true); at += 2
     this.y = dv.getUint16(at, true); at += 2
     return at
@@ -363,7 +368,7 @@ export class SpicePoint {
   x: number = 0
   y: number = 0
 
-  from_dv (dv: DataView | SpiceDataView, at: number, mb: ArrayBuffer): number {
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: BufferInput): number {
     this.x = dv.getUint32(at, true); at += 4
     this.y = dv.getUint32(at, true); at += 4
     return at
@@ -378,7 +383,7 @@ export class SpiceCursorHeader {
   hot_spot_x: number = 0
   hot_spot_y: number = 0
 
-  from_dv (dv: DataView | SpiceDataView, at: number, mb: ArrayBuffer): number {
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: BufferInput): number {
     this.unique = dv.getUint64(at, true); at += 8
     this.type = dv.getUint8(at, true); at++
     this.width = dv.getUint16(at, true); at += 2
@@ -394,14 +399,14 @@ export class SpiceCursor {
   header: SpiceCursorHeader | null = null
   data: ArrayBuffer = new ArrayBuffer(0)
 
-  from_dv (dv: DataView | SpiceDataView, at: number, mb: ArrayBuffer): number {
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: BufferInput): number {
     this.flags = dv.getUint16(at, true); at += 2
     if (this.flags & Constants.SPICE_CURSOR_FLAGS_NONE) {
       this.header = null
     } else {
       this.header = new SpiceCursorHeader()
       at = this.header.from_dv(dv, at, mb)
-      this.data = mb.slice(at)
+      this.data = sliceBuffer(mb, at)
       at += this.data.byteLength
     }
     return at
@@ -415,7 +420,7 @@ export class SpiceSurface {
   format: number = 0
   flags: number = 0
 
-  from_dv (dv: DataView | SpiceDataView, at: number, mb: ArrayBuffer): number {
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: BufferInput): number {
     this.surface_id = dv.getUint32(at, true); at += 4
     this.width = dv.getUint32(at, true); at += 4
     this.height = dv.getUint32(at, true); at += 4

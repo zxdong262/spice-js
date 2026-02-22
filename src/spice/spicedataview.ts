@@ -17,26 +17,84 @@
    along with spice-html5.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-/* ----------------------------------------------------------------------------
-**  SpiceDataView
-** FIXME FIXME
-**    This is used because Firefox does not have DataView yet.
-**    We should use DataView if we have it, because it *has* to
-**    be faster than this code
-**-------------------------------------------------------------------------- */
 export class SpiceDataView {
   u8: Uint8Array
+  buffers: ArrayBuffer[]
+  bufferOffsets: number[]
+  totalLength: number
 
-  constructor (buffer: ArrayBuffer, byteOffset?: number, byteLength?: number) {
-    if (byteOffset !== undefined) {
-      if (byteLength !== undefined) {
-        this.u8 = new Uint8Array(buffer, byteOffset, byteLength)
+  constructor (buffer: ArrayBuffer | ArrayBuffer[], byteOffset?: number, byteLength?: number) {
+    if (Array.isArray(buffer)) {
+      this.buffers = buffer
+      this.bufferOffsets = []
+      this.totalLength = 0
+      for (const buf of buffer) {
+        this.bufferOffsets.push(this.totalLength)
+        this.totalLength += buf.byteLength
+      }
+      if (byteOffset !== undefined) {
+        if (byteLength !== undefined) {
+          this.u8 = this._createU8Array(byteOffset, byteLength)
+        } else {
+          this.u8 = this._createU8Array(byteOffset, this.totalLength - byteOffset)
+        }
       } else {
-        this.u8 = new Uint8Array(buffer, byteOffset)
+        this.u8 = this._createU8Array(0, this.totalLength)
       }
     } else {
-      this.u8 = new Uint8Array(buffer)
+      this.buffers = [buffer]
+      this.bufferOffsets = [0]
+      this.totalLength = buffer.byteLength
+      if (byteOffset !== undefined) {
+        if (byteLength !== undefined) {
+          this.u8 = new Uint8Array(buffer, byteOffset, byteLength)
+        } else {
+          this.u8 = new Uint8Array(buffer, byteOffset)
+        }
+      } else {
+        this.u8 = new Uint8Array(buffer)
+      }
     }
+  }
+
+  private _createU8Array (offset: number, length: number): Uint8Array {
+    const result = new Uint8Array(length)
+    let resultOffset = 0
+    let remaining = length
+    let currentOffset = offset
+
+    for (let i = 0; i < this.buffers.length && remaining > 0; i++) {
+      const bufStart = this.bufferOffsets[i]
+      const bufEnd = bufStart + this.buffers[i].byteLength
+
+      if (currentOffset < bufEnd) {
+        const startInBuf = Math.max(0, currentOffset - bufStart)
+        const endInBuf = Math.min(this.buffers[i].byteLength, startInBuf + remaining)
+        const copyLength = endInBuf - startInBuf
+
+        if (copyLength > 0) {
+          const src = new Uint8Array(this.buffers[i], startInBuf, copyLength)
+          result.set(src, resultOffset)
+          resultOffset += copyLength
+          remaining -= copyLength
+          currentOffset += copyLength
+        }
+      }
+    }
+
+    return result
+  }
+
+  private _getByteAt (globalOffset: number): number {
+    for (let i = this.buffers.length - 1; i >= 0; i--) {
+      if (globalOffset >= this.bufferOffsets[i]) {
+        const localOffset = globalOffset - this.bufferOffsets[i]
+        if (localOffset < this.buffers[i].byteLength) {
+          return new Uint8Array(this.buffers[i])[localOffset]
+        }
+      }
+    }
+    return 0
   }
 
   getUint8 (byteOffset: number, _littleEndian?: boolean): number {
@@ -109,5 +167,10 @@ export class SpiceDataView {
 
     this.setUint32(byteOffset + high, (w & 0xffffffffffffffff) >> 32, littleEndian)
     this.setUint32(byteOffset + low, (w & 0x00000000ffffffff), littleEndian)
+  }
+
+  sliceData (start: number, end?: number): ArrayBuffer {
+    const actualEnd = end !== undefined ? end : this.u8.length
+    return this.u8.slice(start, actualEnd).buffer
   }
 }

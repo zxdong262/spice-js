@@ -17,6 +17,7 @@ A TypeScript port of [spice-html5](https://gitlab.freedesktop.org/spice/spice-ht
 - Added unit tests
 - Implemented a modern build process with Vite
 - Added LZ4 image compression support
+- Optimized message processing to handle multiple ArrayBuffers directly, avoiding buffer concatenation overhead
 
 The TypeScript conversion and build setup code was generated with the assistance of the GLM-5 model in Trae Solo Coder mode.
 

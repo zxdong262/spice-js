@@ -146,8 +146,19 @@ function find_sequence (u8: Uint8Array, at?: number): [number, number] | null {
 /* ----------------------------------------------------------------------------
 **  Extract an RSA key from a memory buffer
 **-------------------------------------------------------------------------- */
-export function create_rsa_from_mb (mb: ArrayBuffer, at?: number): RSAKey | null {
-  const u8 = new Uint8Array(mb)
+export function create_rsa_from_mb (mb: ArrayBuffer | ArrayBuffer[], at?: number): RSAKey | null {
+  let u8: Uint8Array
+  if (Array.isArray(mb)) {
+    const totalLength = mb.reduce((sum, buf) => sum + buf.byteLength, 0)
+    u8 = new Uint8Array(totalLength)
+    let offset = 0
+    for (const buf of mb) {
+      u8.set(new Uint8Array(buf), offset)
+      offset += buf.byteLength
+    }
+  } else {
+    u8 = new Uint8Array(mb)
+  }
   let lenblock: [number, number] | null
   let seq: [number, number] | null
   let ba: number[]
