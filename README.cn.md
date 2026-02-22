@@ -1,6 +1,6 @@
 # spice-client
 
-[![English](./README.md)](./README.md)
+[English](./README.md)
 
 [spice-html5](https://gitlab.freedesktop.org/spice/spice-html5.git) 的 TypeScript 移植版 - SPICE 协议的 JavaScript 客户端。
 

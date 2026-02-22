@@ -1,6 +1,6 @@
 # spice-client
 
-[![中文](./README.cn.md)](./README.cn.md)
+[中文](./README.cn.md)
 
 A TypeScript port of [spice-html5](https://gitlab.freedesktop.org/spice/spice-html5.git) - a JavaScript client for the SPICE protocol.
 
