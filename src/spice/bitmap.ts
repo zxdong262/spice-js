@@ -17,48 +17,48 @@
    along with spice-html5.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-import { Constants } from './enums';
+import { Constants } from './enums'
 
 interface SpiceBitmap {
-  data: ArrayBuffer;
-  format: number;
-  flags: number;
-  x: number;
-  y: number;
-  stride: number;
+  data: ArrayBuffer
+  format: number
+  flags: number
+  x: number
+  y: number
+  stride: number
 }
 
-export function convert_spice_bitmap_to_web(context: CanvasRenderingContext2D, spice_bitmap: SpiceBitmap): ImageData | undefined {
-  let ret: ImageData;
-  let offset: number, x: number, src_offset: number = 0, src_dec: number = 0;
-  const u8 = new Uint8Array(spice_bitmap.data);
-  
+export function convert_spice_bitmap_to_web (context: CanvasRenderingContext2D, spice_bitmap: SpiceBitmap): ImageData | undefined {
+  let ret: ImageData
+  let offset: number; let x: number; let src_offset: number = 0; let src_dec: number = 0
+  const u8 = new Uint8Array(spice_bitmap.data)
+
   if (spice_bitmap.format != Constants.SPICE_BITMAP_FMT_32BIT &&
       spice_bitmap.format != Constants.SPICE_BITMAP_FMT_RGBA) {
-    return undefined;
+    return undefined
   }
 
   if (!(spice_bitmap.flags & Constants.SPICE_BITMAP_FLAGS_TOP_DOWN)) {
-    src_offset = (spice_bitmap.y - 1) * spice_bitmap.stride;
-    src_dec = 2 * spice_bitmap.stride;
+    src_offset = (spice_bitmap.y - 1) * spice_bitmap.stride
+    src_dec = 2 * spice_bitmap.stride
   }
 
-  ret = context.createImageData(spice_bitmap.x, spice_bitmap.y);
-  
+  ret = context.createImageData(spice_bitmap.x, spice_bitmap.y)
+
   for (offset = 0; offset < (spice_bitmap.y * spice_bitmap.stride); src_offset -= src_dec) {
     for (x = 0; x < spice_bitmap.x; x++, offset += 4, src_offset += 4) {
-      ret.data[offset + 0] = u8[src_offset + 2];
-      ret.data[offset + 1] = u8[src_offset + 1];
-      ret.data[offset + 2] = u8[src_offset + 0];
+      ret.data[offset + 0] = u8[src_offset + 2]
+      ret.data[offset + 1] = u8[src_offset + 1]
+      ret.data[offset + 2] = u8[src_offset + 0]
 
       // FIXME - We effectively treat all images as having SPICE_IMAGE_FLAGS_HIGH_BITS_SET
       if (spice_bitmap.format == Constants.SPICE_BITMAP_FMT_32BIT) {
-        ret.data[offset + 3] = 255;
+        ret.data[offset + 3] = 255
       } else {
-        ret.data[offset + 3] = u8[src_offset];
+        ret.data[offset + 3] = u8[src_offset]
       }
     }
   }
 
-  return ret;
+  return ret
 }

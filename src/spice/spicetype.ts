@@ -17,411 +17,412 @@
    along with spice-html5.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-/*----------------------------------------------------------------------------
+/* ----------------------------------------------------------------------------
 **  Spice types
 **      This file contains classes for common spice types.
 **  Generally, they are used as helpers in reading and writing messages
 **  to and from the server.
-**--------------------------------------------------------------------------*/
+**-------------------------------------------------------------------------- */
 
-import { Constants } from './enums';
-import { SpiceQuic } from './quic';
+import { Constants } from './enums'
+import { SpiceQuic } from './quic'
+import { SpiceDataView } from './spicedataview'
 
 export class SpiceChannelId {
-    type: number = 0;
-    id: number = 0;
+  type: number = 0
+  id: number = 0
 
-    from_dv(dv: DataView, at: number, mb: ArrayBuffer): number {
-        this.type = dv.getUint8(at, true); at++;
-        this.id = dv.getUint8(at, true); at++;
-        return at;
-    }
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: ArrayBuffer): number {
+    this.type = dv.getUint8(at, true); at++
+    this.id = dv.getUint8(at, true); at++
+    return at
+  }
 }
 
 export class SpiceRect {
-    top: number = 0;
-    left: number = 0;
-    bottom: number = 0;
-    right: number = 0;
+  top: number = 0
+  left: number = 0
+  bottom: number = 0
+  right: number = 0
 
-    from_dv(dv: DataView, at: number, mb: ArrayBuffer): number {
-        this.top = dv.getUint32(at, true); at += 4;
-        this.left = dv.getUint32(at, true); at += 4;
-        this.bottom = dv.getUint32(at, true); at += 4;
-        this.right = dv.getUint32(at, true); at += 4;
-        return at;
-    }
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: ArrayBuffer): number {
+    this.top = dv.getUint32(at, true); at += 4
+    this.left = dv.getUint32(at, true); at += 4
+    this.bottom = dv.getUint32(at, true); at += 4
+    this.right = dv.getUint32(at, true); at += 4
+    return at
+  }
 
-    is_same_size(r: SpiceRect): boolean {
-        if ((this.bottom - this.top) == (r.bottom - r.top) &&
+  is_same_size (r: SpiceRect): boolean {
+    if ((this.bottom - this.top) == (r.bottom - r.top) &&
             (this.right - this.left) == (r.right - r.left)) {
-            return true;
-        }
-        return false;
+      return true
     }
+    return false
+  }
 }
 
 export class SpiceClipRects {
-    num_rects: number = 0;
-    rects: SpiceRect[] = [];
+  num_rects: number = 0
+  rects: SpiceRect[] = []
 
-    from_dv(dv: DataView, at: number, mb: ArrayBuffer): number {
-        var i: number;
-        this.num_rects = dv.getUint32(at, true); at += 4;
-        if (this.num_rects > 0) {
-            this.rects = [];
-        }
-        for (i = 0; i < this.num_rects; i++) {
-            this.rects[i] = new SpiceRect();
-            at = this.rects[i].from_dv(dv, at, mb);
-        }
-        return at;
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: ArrayBuffer): number {
+    let i: number
+    this.num_rects = dv.getUint32(at, true); at += 4
+    if (this.num_rects > 0) {
+      this.rects = []
     }
+    for (i = 0; i < this.num_rects; i++) {
+      this.rects[i] = new SpiceRect()
+      at = this.rects[i].from_dv(dv, at, mb)
+    }
+    return at
+  }
 }
 
 export class SpiceClip {
-    type: number = 0;
-    rects: SpiceClipRects | undefined;
+  type: number = 0
+  rects: SpiceClipRects | undefined
 
-    from_dv(dv: DataView, at: number, mb: ArrayBuffer): number {
-        this.type = dv.getUint8(at, true); at++;
-        if (this.type == Constants.SPICE_CLIP_TYPE_RECTS) {
-            this.rects = new SpiceClipRects();
-            at = this.rects.from_dv(dv, at, mb);
-        }
-        return at;
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: ArrayBuffer): number {
+    this.type = dv.getUint8(at, true); at++
+    if (this.type == Constants.SPICE_CLIP_TYPE_RECTS) {
+      this.rects = new SpiceClipRects()
+      at = this.rects.from_dv(dv, at, mb)
     }
+    return at
+  }
 }
 
 export class SpiceImageDescriptor {
-    id: number = 0;
-    type: number = 0;
-    flags: number = 0;
-    width: number = 0;
-    height: number = 0;
+  id: number = 0
+  type: number = 0
+  flags: number = 0
+  width: number = 0
+  height: number = 0
 
-    from_dv(dv: DataView, at: number, mb: ArrayBuffer): number {
-        this.id = dv.getUint64(at, true); at += 8;
-        this.type = dv.getUint8(at, true); at++;
-        this.flags = dv.getUint8(at, true); at++;
-        this.width = dv.getUint32(at, true); at += 4;
-        this.height = dv.getUint32(at, true); at += 4;
-        return at;
-    }
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: ArrayBuffer): number {
+    this.id = dv.getUint64(at, true); at += 8
+    this.type = dv.getUint8(at, true); at++
+    this.flags = dv.getUint8(at, true); at++
+    this.width = dv.getUint32(at, true); at += 4
+    this.height = dv.getUint32(at, true); at += 4
+    return at
+  }
 }
 
 export class SpicePalette {
-    unique: number = 0;
-    num_ents: number = 0;
-    ents: number[] = [];
+  unique: number = 0
+  num_ents: number = 0
+  ents: number[] = []
 
-    from_dv(dv: DataView, at: number, mb: ArrayBuffer): number {
-        var i: number;
-        this.unique = dv.getUint64(at, true); at += 8;
-        this.num_ents = dv.getUint16(at, true); at += 2;
-        this.ents = [];
-        for (i = 0; i < this.num_ents; i++) {
-            this.ents[i] = dv.getUint32(at, true); at += 4;
-        }
-        return at;
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: ArrayBuffer): number {
+    let i: number
+    this.unique = dv.getUint64(at, true); at += 8
+    this.num_ents = dv.getUint16(at, true); at += 2
+    this.ents = []
+    for (i = 0; i < this.num_ents; i++) {
+      this.ents[i] = dv.getUint32(at, true); at += 4
     }
+    return at
+  }
 }
 
 export class SpiceBitmap {
-    format: number = 0;
-    flags: number = 0;
-    x: number = 0;
-    y: number = 0;
-    stride: number = 0;
-    palette_id?: number;
-    palette: SpicePalette | null = null;
-    data: ArrayBuffer = new ArrayBuffer(0);
+  format: number = 0
+  flags: number = 0
+  x: number = 0
+  y: number = 0
+  stride: number = 0
+  palette_id?: number
+  palette: SpicePalette | null = null
+  data: ArrayBuffer = new ArrayBuffer(0)
 
-    from_dv(dv: DataView, at: number, mb: ArrayBuffer): number {
-        this.format = dv.getUint8(at, true); at++;
-        this.flags = dv.getUint8(at, true); at++;
-        this.x = dv.getUint32(at, true); at += 4;
-        this.y = dv.getUint32(at, true); at += 4;
-        this.stride = dv.getUint32(at, true); at += 4;
-        if (this.flags & Constants.SPICE_BITMAP_FLAGS_PAL_FROM_CACHE) {
-            this.palette_id = dv.getUint64(at, true); at += 8;
-        } else {
-            var offset = dv.getUint32(at, true); at += 4;
-            if (offset == 0) {
-                this.palette = null;
-            } else {
-                this.palette = new SpicePalette();
-                this.palette.from_dv(dv, offset, mb);
-            }
-        }
-        // FIXME - should probably constrain this to the offset
-        //          of palette, if non zero
-        this.data = mb.slice(at);
-        at += this.data.byteLength;
-        return at;
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: ArrayBuffer): number {
+    this.format = dv.getUint8(at, true); at++
+    this.flags = dv.getUint8(at, true); at++
+    this.x = dv.getUint32(at, true); at += 4
+    this.y = dv.getUint32(at, true); at += 4
+    this.stride = dv.getUint32(at, true); at += 4
+    if (this.flags & Constants.SPICE_BITMAP_FLAGS_PAL_FROM_CACHE) {
+      this.palette_id = dv.getUint64(at, true); at += 8
+    } else {
+      const offset = dv.getUint32(at, true); at += 4
+      if (offset == 0) {
+        this.palette = null
+      } else {
+        this.palette = new SpicePalette()
+        this.palette.from_dv(dv, offset, mb)
+      }
     }
+    // FIXME - should probably constrain this to the offset
+    //          of palette, if non zero
+    this.data = mb.slice(at)
+    at += this.data.byteLength
+    return at
+  }
 }
 
 export class SpiceImage {
-    descriptor: SpiceImageDescriptor = new SpiceImageDescriptor();
-    lz_rgb?: any;
-    bitmap?: SpiceBitmap;
-    surface_id?: number;
-    jpeg?: any;
-    jpeg_alpha?: any;
-    quic?: SpiceQuic;
+  descriptor: SpiceImageDescriptor = new SpiceImageDescriptor()
+  lz_rgb?: any
+  bitmap?: SpiceBitmap
+  surface_id?: number
+  jpeg?: any
+  jpeg_alpha?: any
+  quic?: SpiceQuic
 
-    from_dv(dv: DataView, at: number, mb: ArrayBuffer): number {
-        this.descriptor = new SpiceImageDescriptor();
-        at = this.descriptor.from_dv(dv, at, mb);
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: ArrayBuffer): number {
+    this.descriptor = new SpiceImageDescriptor()
+    at = this.descriptor.from_dv(dv, at, mb)
 
-        if (this.descriptor.type == Constants.SPICE_IMAGE_TYPE_LZ_RGB) {
-            this.lz_rgb = new Object();
-            this.lz_rgb.length = dv.getUint32(at, true); at += 4;
-            var initial_at = at;
-            this.lz_rgb.magic = "";
-            for (var i = 3; i >= 0; i--) {
-                this.lz_rgb.magic += String.fromCharCode(dv.getUint8(at + i));
-            }
-            at += 4;
+    if (this.descriptor.type == Constants.SPICE_IMAGE_TYPE_LZ_RGB) {
+      this.lz_rgb = new Object()
+      this.lz_rgb.length = dv.getUint32(at, true); at += 4
+      var initial_at = at
+      this.lz_rgb.magic = ''
+      for (var i = 3; i >= 0; i--) {
+        this.lz_rgb.magic += String.fromCharCode(dv.getUint8(at + i))
+      }
+      at += 4
 
-            // NOTE:  The endian change is *correct*
-            this.lz_rgb.version = dv.getUint32(at); at += 4;
-            this.lz_rgb.type = dv.getUint32(at); at += 4;
-            this.lz_rgb.width = dv.getUint32(at); at += 4;
-            this.lz_rgb.height = dv.getUint32(at); at += 4;
-            this.lz_rgb.stride = dv.getUint32(at); at += 4;
-            this.lz_rgb.top_down = dv.getUint32(at); at += 4;
+      // NOTE:  The endian change is *correct*
+      this.lz_rgb.version = dv.getUint32(at); at += 4
+      this.lz_rgb.type = dv.getUint32(at); at += 4
+      this.lz_rgb.width = dv.getUint32(at); at += 4
+      this.lz_rgb.height = dv.getUint32(at); at += 4
+      this.lz_rgb.stride = dv.getUint32(at); at += 4
+      this.lz_rgb.top_down = dv.getUint32(at); at += 4
 
-            var header_size = at - initial_at;
+      var header_size = at - initial_at
 
-            this.lz_rgb.data = mb.slice(at, this.lz_rgb.length + at - header_size);
-            at += this.lz_rgb.data.byteLength;
-        }
-
-        if (this.descriptor.type == Constants.SPICE_IMAGE_TYPE_BITMAP) {
-            this.bitmap = new SpiceBitmap();
-            at = this.bitmap.from_dv(dv, at, mb);
-        }
-
-        if (this.descriptor.type == Constants.SPICE_IMAGE_TYPE_SURFACE) {
-            this.surface_id = dv.getUint32(at, true); at += 4;
-        }
-
-        if (this.descriptor.type == Constants.SPICE_IMAGE_TYPE_JPEG) {
-            this.jpeg = new Object();
-            this.jpeg.data_size = dv.getUint32(at, true); at += 4;
-            this.jpeg.data = mb.slice(at);
-            at += this.jpeg.data.byteLength;
-        }
-
-        if (this.descriptor.type == Constants.SPICE_IMAGE_TYPE_JPEG_ALPHA) {
-            this.jpeg_alpha = new Object();
-            this.jpeg_alpha.flags = dv.getUint8(at, true); at += 1;
-            this.jpeg_alpha.jpeg_size = dv.getUint32(at, true); at += 4;
-            this.jpeg_alpha.data_size = dv.getUint32(at, true); at += 4;
-            this.jpeg_alpha.data = mb.slice(at, this.jpeg_alpha.jpeg_size + at);
-            at += this.jpeg_alpha.data.byteLength;
-            // Alpha channel is an LZ image
-            this.jpeg_alpha.alpha = new Object();
-            this.jpeg_alpha.alpha.length = this.jpeg_alpha.data_size - this.jpeg_alpha.jpeg_size;
-            var initial_at = at;
-            this.jpeg_alpha.alpha.magic = "";
-            for (var i = 3; i >= 0; i--) {
-                this.jpeg_alpha.alpha.magic += String.fromCharCode(dv.getUint8(at + i));
-            }
-            at += 4;
-
-            // NOTE:  The endian change is *correct*
-            this.jpeg_alpha.alpha.version = dv.getUint32(at); at += 4;
-            this.jpeg_alpha.alpha.type = dv.getUint32(at); at += 4;
-            this.jpeg_alpha.alpha.width = dv.getUint32(at); at += 4;
-            this.jpeg_alpha.alpha.height = dv.getUint32(at); at += 4;
-            this.jpeg_alpha.alpha.stride = dv.getUint32(at); at += 4;
-            this.jpeg_alpha.alpha.top_down = dv.getUint32(at); at += 4;
-
-            var header_size = at - initial_at;
-
-            this.jpeg_alpha.alpha.data = mb.slice(at, this.jpeg_alpha.alpha.length + at - header_size);
-            at += this.jpeg_alpha.alpha.data.byteLength;
-        }
-
-        if (this.descriptor.type == Constants.SPICE_IMAGE_TYPE_QUIC) {
-            this.quic = new SpiceQuic();
-            at = this.quic.from_dv(dv, at, mb);
-        }
-        return at;
+      this.lz_rgb.data = mb.slice(at, this.lz_rgb.length + at - header_size)
+      at += this.lz_rgb.data.byteLength
     }
+
+    if (this.descriptor.type == Constants.SPICE_IMAGE_TYPE_BITMAP) {
+      this.bitmap = new SpiceBitmap()
+      at = this.bitmap.from_dv(dv, at, mb)
+    }
+
+    if (this.descriptor.type == Constants.SPICE_IMAGE_TYPE_SURFACE) {
+      this.surface_id = dv.getUint32(at, true); at += 4
+    }
+
+    if (this.descriptor.type == Constants.SPICE_IMAGE_TYPE_JPEG) {
+      this.jpeg = new Object()
+      this.jpeg.data_size = dv.getUint32(at, true); at += 4
+      this.jpeg.data = mb.slice(at)
+      at += this.jpeg.data.byteLength
+    }
+
+    if (this.descriptor.type == Constants.SPICE_IMAGE_TYPE_JPEG_ALPHA) {
+      this.jpeg_alpha = new Object()
+      this.jpeg_alpha.flags = dv.getUint8(at, true); at += 1
+      this.jpeg_alpha.jpeg_size = dv.getUint32(at, true); at += 4
+      this.jpeg_alpha.data_size = dv.getUint32(at, true); at += 4
+      this.jpeg_alpha.data = mb.slice(at, this.jpeg_alpha.jpeg_size + at)
+      at += this.jpeg_alpha.data.byteLength
+      // Alpha channel is an LZ image
+      this.jpeg_alpha.alpha = new Object()
+      this.jpeg_alpha.alpha.length = this.jpeg_alpha.data_size - this.jpeg_alpha.jpeg_size
+      var initial_at = at
+      this.jpeg_alpha.alpha.magic = ''
+      for (var i = 3; i >= 0; i--) {
+        this.jpeg_alpha.alpha.magic += String.fromCharCode(dv.getUint8(at + i))
+      }
+      at += 4
+
+      // NOTE:  The endian change is *correct*
+      this.jpeg_alpha.alpha.version = dv.getUint32(at); at += 4
+      this.jpeg_alpha.alpha.type = dv.getUint32(at); at += 4
+      this.jpeg_alpha.alpha.width = dv.getUint32(at); at += 4
+      this.jpeg_alpha.alpha.height = dv.getUint32(at); at += 4
+      this.jpeg_alpha.alpha.stride = dv.getUint32(at); at += 4
+      this.jpeg_alpha.alpha.top_down = dv.getUint32(at); at += 4
+
+      var header_size = at - initial_at
+
+      this.jpeg_alpha.alpha.data = mb.slice(at, this.jpeg_alpha.alpha.length + at - header_size)
+      at += this.jpeg_alpha.alpha.data.byteLength
+    }
+
+    if (this.descriptor.type == Constants.SPICE_IMAGE_TYPE_QUIC) {
+      this.quic = new SpiceQuic()
+      at = this.quic.from_dv(dv, at, mb)
+    }
+    return at
+  }
 }
 
 export class SpiceQMask {
-    flags: number = 0;
-    pos: SpicePoint = new SpicePoint();
-    bitmap: SpiceImage | null = null;
+  flags: number = 0
+  pos: SpicePoint = new SpicePoint()
+  bitmap: SpiceImage | null = null
 
-    from_dv(dv: DataView, at: number, mb: ArrayBuffer): number {
-        this.flags = dv.getUint8(at, true); at++;
-        this.pos = new SpicePoint();
-        at = this.pos.from_dv(dv, at, mb);
-        var offset = dv.getUint32(at, true); at += 4;
-        if (offset == 0) {
-            this.bitmap = null;
-            return at;
-        }
-
-        this.bitmap = new SpiceImage();
-        return this.bitmap.from_dv(dv, offset, mb);
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: ArrayBuffer): number {
+    this.flags = dv.getUint8(at, true); at++
+    this.pos = new SpicePoint()
+    at = this.pos.from_dv(dv, at, mb)
+    const offset = dv.getUint32(at, true); at += 4
+    if (offset == 0) {
+      this.bitmap = null
+      return at
     }
+
+    this.bitmap = new SpiceImage()
+    return this.bitmap.from_dv(dv, offset, mb)
+  }
 }
 
 export class SpicePattern {
-    pat: SpiceImage | null = null;
-    pos: SpicePoint = new SpicePoint();
+  pat: SpiceImage | null = null
+  pos: SpicePoint = new SpicePoint()
 
-    from_dv(dv: DataView, at: number, mb: ArrayBuffer): number {
-        var offset = dv.getUint32(at, true); at += 4;
-        if (offset == 0) {
-            this.pat = null;
-        } else {
-            this.pat = new SpiceImage();
-            this.pat.from_dv(dv, offset, mb);
-        }
-
-        this.pos = new SpicePoint();
-        return this.pos.from_dv(dv, at, mb);
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: ArrayBuffer): number {
+    const offset = dv.getUint32(at, true); at += 4
+    if (offset == 0) {
+      this.pat = null
+    } else {
+      this.pat = new SpiceImage()
+      this.pat.from_dv(dv, offset, mb)
     }
+
+    this.pos = new SpicePoint()
+    return this.pos.from_dv(dv, at, mb)
+  }
 }
 
 export class SpiceBrush {
-    type: number = 0;
-    color?: number;
-    pattern?: SpicePattern;
+  type: number = 0
+  color?: number
+  pattern?: SpicePattern
 
-    from_dv(dv: DataView, at: number, mb: ArrayBuffer): number {
-        this.type = dv.getUint8(at, true); at++;
-        if (this.type == Constants.SPICE_BRUSH_TYPE_SOLID) {
-            this.color = dv.getUint32(at, true); at += 4;
-        } else if (this.type == Constants.SPICE_BRUSH_TYPE_PATTERN) {
-            this.pattern = new SpicePattern();
-            at = this.pattern.from_dv(dv, at, mb);
-        }
-        return at;
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: ArrayBuffer): number {
+    this.type = dv.getUint8(at, true); at++
+    if (this.type == Constants.SPICE_BRUSH_TYPE_SOLID) {
+      this.color = dv.getUint32(at, true); at += 4
+    } else if (this.type == Constants.SPICE_BRUSH_TYPE_PATTERN) {
+      this.pattern = new SpicePattern()
+      at = this.pattern.from_dv(dv, at, mb)
     }
+    return at
+  }
 }
 
 export class SpiceFill {
-    brush: SpiceBrush = new SpiceBrush();
-    rop_descriptor: number = 0;
-    mask: SpiceQMask = new SpiceQMask();
+  brush: SpiceBrush = new SpiceBrush()
+  rop_descriptor: number = 0
+  mask: SpiceQMask = new SpiceQMask()
 
-    from_dv(dv: DataView, at: number, mb: ArrayBuffer): number {
-        this.brush = new SpiceBrush();
-        at = this.brush.from_dv(dv, at, mb);
-        this.rop_descriptor = dv.getUint16(at, true); at += 2;
-        this.mask = new SpiceQMask();
-        return this.mask.from_dv(dv, at, mb);
-    }
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: ArrayBuffer): number {
+    this.brush = new SpiceBrush()
+    at = this.brush.from_dv(dv, at, mb)
+    this.rop_descriptor = dv.getUint16(at, true); at += 2
+    this.mask = new SpiceQMask()
+    return this.mask.from_dv(dv, at, mb)
+  }
 }
 
 export class SpiceCopy {
-    src_bitmap: SpiceImage | null = null;
-    src_area: SpiceRect = new SpiceRect();
-    rop_descriptor: number = 0;
-    scale_mode: number = 0;
-    mask: SpiceQMask = new SpiceQMask();
+  src_bitmap: SpiceImage | null = null
+  src_area: SpiceRect = new SpiceRect()
+  rop_descriptor: number = 0
+  scale_mode: number = 0
+  mask: SpiceQMask = new SpiceQMask()
 
-    from_dv(dv: DataView, at: number, mb: ArrayBuffer): number {
-        var offset = dv.getUint32(at, true); at += 4;
-        if (offset == 0) {
-            this.src_bitmap = null;
-        } else {
-            this.src_bitmap = new SpiceImage();
-            this.src_bitmap.from_dv(dv, offset, mb);
-        }
-        this.src_area = new SpiceRect();
-        at = this.src_area.from_dv(dv, at, mb);
-        this.rop_descriptor = dv.getUint16(at, true); at += 2;
-        this.scale_mode = dv.getUint8(at, true); at++;
-        this.mask = new SpiceQMask();
-        return this.mask.from_dv(dv, at, mb);
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: ArrayBuffer): number {
+    const offset = dv.getUint32(at, true); at += 4
+    if (offset == 0) {
+      this.src_bitmap = null
+    } else {
+      this.src_bitmap = new SpiceImage()
+      this.src_bitmap.from_dv(dv, offset, mb)
     }
+    this.src_area = new SpiceRect()
+    at = this.src_area.from_dv(dv, at, mb)
+    this.rop_descriptor = dv.getUint16(at, true); at += 2
+    this.scale_mode = dv.getUint8(at, true); at++
+    this.mask = new SpiceQMask()
+    return this.mask.from_dv(dv, at, mb)
+  }
 }
 
 export class SpicePoint16 {
-    x: number = 0;
-    y: number = 0;
+  x: number = 0
+  y: number = 0
 
-    from_dv(dv: DataView, at: number, mb: ArrayBuffer): number {
-        this.x = dv.getUint16(at, true); at += 2;
-        this.y = dv.getUint16(at, true); at += 2;
-        return at;
-    }
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: ArrayBuffer): number {
+    this.x = dv.getUint16(at, true); at += 2
+    this.y = dv.getUint16(at, true); at += 2
+    return at
+  }
 }
 
 export class SpicePoint {
-    x: number = 0;
-    y: number = 0;
+  x: number = 0
+  y: number = 0
 
-    from_dv(dv: DataView, at: number, mb: ArrayBuffer): number {
-        this.x = dv.getUint32(at, true); at += 4;
-        this.y = dv.getUint32(at, true); at += 4;
-        return at;
-    }
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: ArrayBuffer): number {
+    this.x = dv.getUint32(at, true); at += 4
+    this.y = dv.getUint32(at, true); at += 4
+    return at
+  }
 }
 
 export class SpiceCursorHeader {
-    unique: number = 0;
-    type: number = 0;
-    width: number = 0;
-    height: number = 0;
-    hot_spot_x: number = 0;
-    hot_spot_y: number = 0;
+  unique: number = 0
+  type: number = 0
+  width: number = 0
+  height: number = 0
+  hot_spot_x: number = 0
+  hot_spot_y: number = 0
 
-    from_dv(dv: DataView, at: number, mb: ArrayBuffer): number {
-        this.unique = dv.getUint64(at, true); at += 8;
-        this.type = dv.getUint8(at, true); at++;
-        this.width = dv.getUint16(at, true); at += 2;
-        this.height = dv.getUint16(at, true); at += 2;
-        this.hot_spot_x = dv.getUint16(at, true); at += 2;
-        this.hot_spot_y = dv.getUint16(at, true); at += 2;
-        return at;
-    }
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: ArrayBuffer): number {
+    this.unique = dv.getUint64(at, true); at += 8
+    this.type = dv.getUint8(at, true); at++
+    this.width = dv.getUint16(at, true); at += 2
+    this.height = dv.getUint16(at, true); at += 2
+    this.hot_spot_x = dv.getUint16(at, true); at += 2
+    this.hot_spot_y = dv.getUint16(at, true); at += 2
+    return at
+  }
 }
 
 export class SpiceCursor {
-    flags: number = 0;
-    header: SpiceCursorHeader | null = null;
-    data: ArrayBuffer = new ArrayBuffer(0);
+  flags: number = 0
+  header: SpiceCursorHeader | null = null
+  data: ArrayBuffer = new ArrayBuffer(0)
 
-    from_dv(dv: DataView, at: number, mb: ArrayBuffer): number {
-        this.flags = dv.getUint16(at, true); at += 2;
-        if (this.flags & Constants.SPICE_CURSOR_FLAGS_NONE) {
-            this.header = null;
-        } else {
-            this.header = new SpiceCursorHeader();
-            at = this.header.from_dv(dv, at, mb);
-            this.data = mb.slice(at);
-            at += this.data.byteLength;
-        }
-        return at;
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: ArrayBuffer): number {
+    this.flags = dv.getUint16(at, true); at += 2
+    if (this.flags & Constants.SPICE_CURSOR_FLAGS_NONE) {
+      this.header = null
+    } else {
+      this.header = new SpiceCursorHeader()
+      at = this.header.from_dv(dv, at, mb)
+      this.data = mb.slice(at)
+      at += this.data.byteLength
     }
+    return at
+  }
 }
 
 export class SpiceSurface {
-    surface_id: number = 0;
-    width: number = 0;
-    height: number = 0;
-    format: number = 0;
-    flags: number = 0;
+  surface_id: number = 0
+  width: number = 0
+  height: number = 0
+  format: number = 0
+  flags: number = 0
 
-    from_dv(dv: DataView, at: number, mb: ArrayBuffer): number {
-        this.surface_id = dv.getUint32(at, true); at += 4;
-        this.width = dv.getUint32(at, true); at += 4;
-        this.height = dv.getUint32(at, true); at += 4;
-        this.format = dv.getUint32(at, true); at += 4;
-        this.flags = dv.getUint32(at, true); at += 4;
-        return at;
-    }
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: ArrayBuffer): number {
+    this.surface_id = dv.getUint32(at, true); at += 4
+    this.width = dv.getUint32(at, true); at += 4
+    this.height = dv.getUint32(at, true); at += 4
+    this.format = dv.getUint32(at, true); at += 4
+    this.flags = dv.getUint32(at, true); at += 4
+    return at
+  }
 }
 
 /* FIXME - SpiceImage  types lz_plt, jpeg, zlib_glz, and jpeg_alpha are

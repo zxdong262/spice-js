@@ -32,107 +32,100 @@
  * and disclaimer.
  */
 
-
 // Depends on jsbn.js and rng.js
-import { BigInteger } from './jsbn';
-import { SecureRandom } from './rng';
+import { BigInteger } from './jsbn'
+import { SecureRandom } from './rng'
 
 // Version 1.1: support utf-8 encoding in pkcs1pad2
 
 // convert a (hex) string to a bignum object
-function parseBigInt(str: string, r: number): BigInteger {
-  return new BigInteger(str, r);
+function parseBigInt (str: string, r: number): BigInteger {
+  return new BigInteger(str, r)
 }
 
-function linebrk(s: string, n: number): string {
-  var ret = "";
-  var i = 0;
+function linebrk (s: string, n: number): string {
+  let ret = ''
+  let i = 0
   while (i + n < s.length) {
-    ret += s.substring(i, i + n) + "\n";
-    i += n;
+    ret += s.substring(i, i + n) + '\n'
+    i += n
   }
-  return ret + s.substring(i, s.length);
+  return ret + s.substring(i, s.length)
 }
 
-function byte2Hex(b: number): string {
-  if (b < 0x10)
-    return "0" + b.toString(16);
-  else
-    return b.toString(16);
+function byte2Hex (b: number): string {
+  if (b < 0x10) { return '0' + b.toString(16) } else { return b.toString(16) }
 }
 
 // PKCS#1 (type 2, random) pad input string s to n bytes, and return a bigint
-function pkcs1pad2(s: string, n: number): BigInteger | null {
+function pkcs1pad2 (s: string, n: number): BigInteger | null {
   if (n < s.length + 11) { // TODO: fix for utf-8
-    alert("Message too long for RSA");
-    return null;
+    alert('Message too long for RSA')
+    return null
   }
-  var ba: number[] = new Array();
-  var i = s.length - 1;
+  const ba: number[] = []
+  let i = s.length - 1
   while (i >= 0 && n > 0) {
-    var c = s.charCodeAt(i--);
+    const c = s.charCodeAt(i--)
     if (c < 128) { // encode using utf-8
-      ba[--n] = c;
-    }
-    else if ((c > 127) && (c < 2048)) {
-      ba[--n] = (c & 63) | 128;
-      ba[--n] = (c >> 6) | 192;
-    }
-    else {
-      ba[--n] = (c & 63) | 128;
-      ba[--n] = ((c >> 6) & 63) | 128;
-      ba[--n] = (c >> 12) | 224;
+      ba[--n] = c
+    } else if ((c > 127) && (c < 2048)) {
+      ba[--n] = (c & 63) | 128
+      ba[--n] = (c >> 6) | 192
+    } else {
+      ba[--n] = (c & 63) | 128
+      ba[--n] = ((c >> 6) & 63) | 128
+      ba[--n] = (c >> 12) | 224
     }
   }
-  ba[--n] = 0;
-  var rng = new SecureRandom();
-  var x: number[] = new Array();
+  ba[--n] = 0
+  const rng = new SecureRandom()
+  const x: number[] = []
   while (n > 2) { // random non-zero pad
-    x[0] = 0;
-    while (x[0] == 0) rng.nextBytes(x);
-    ba[--n] = x[0];
+    x[0] = 0
+    while (x[0] == 0) rng.nextBytes(x)
+    ba[--n] = x[0]
   }
-  ba[--n] = 2;
-  ba[--n] = 0;
-  return new BigInteger(ba);
+  ba[--n] = 2
+  ba[--n] = 0
+  return new BigInteger(ba)
 }
 
 export class RSAKey {
-  n: BigInteger | null = null;
-  e: number = 0;
-  d: BigInteger | null = null;
-  p: BigInteger | null = null;
-  q: BigInteger | null = null;
-  dmp1: BigInteger | null = null;
-  dmq1: BigInteger | null = null;
-  coeff: BigInteger | null = null;
+  n: BigInteger | null = null
+  e: number = 0
+  d: BigInteger | null = null
+  p: BigInteger | null = null
+  q: BigInteger | null = null
+  dmp1: BigInteger | null = null
+  dmq1: BigInteger | null = null
+  coeff: BigInteger | null = null
 
   // Set the public key fields N and e from hex strings
-  setPublic(N: string, E: string): void {
+  setPublic (N: string, E: string): void {
     if (N != null && E != null && N.length > 0 && E.length > 0) {
-      this.n = parseBigInt(N, 16);
-      this.e = parseInt(E, 16);
-    }
-    else {
-      alert("Invalid RSA public key");
+      this.n = parseBigInt(N, 16)
+      this.e = parseInt(E, 16)
+    } else {
+      alert('Invalid RSA public key')
     }
   }
 
   // Perform raw public operation on "x": return x^e (mod n)
-  doPublic(x: BigInteger): BigInteger {
-    return x.modPowInt(this.e, this.n!);
+  doPublic (x: BigInteger): BigInteger {
+    return x.modPowInt(this.e, this.n)
   }
 
   // Return the PKCS#1 RSA encryption of "text" as an even-length hex string
-  encrypt(text: string): string | null {
+  encrypt (text: string): string | null {
     if (!this.n) {
-      return null;
+      return null
     }
-    var m = pkcs1pad2(text, (this.n.bitLength() + 7) >> 3);
-    if (m == null) return null;
-    var c = this.doPublic(m);
-    if (c == null) return null;
-    var h = c.toString(16);
-    if ((h.length & 1) == 0) return h; else return "0" + h;
+    const m = pkcs1pad2(text, (this.n.bitLength() + 7) >> 3)
+    if (m == null) return null
+    const c = this.doPublic(m)
+    if (c == null) return null
+    const h = c.toString(16)
+    if ((h.length & 1) == 0) return h; else return '0' + h
   }
 }

@@ -17,97 +17,97 @@
    along with spice-html5.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-/*----------------------------------------------------------------------------
+/* ----------------------------------------------------------------------------
 **  SpiceDataView
 ** FIXME FIXME
 **    This is used because Firefox does not have DataView yet.
 **    We should use DataView if we have it, because it *has* to
 **    be faster than this code
-**--------------------------------------------------------------------------*/
+**-------------------------------------------------------------------------- */
 export class SpiceDataView {
-    u8: Uint8Array;
+  u8: Uint8Array
 
-    constructor(buffer: ArrayBuffer, byteOffset?: number, byteLength?: number) {
-        if (byteOffset !== undefined) {
-            if (byteLength !== undefined) {
-                this.u8 = new Uint8Array(buffer, byteOffset, byteLength);
-            } else {
-                this.u8 = new Uint8Array(buffer, byteOffset);
-            }
-        } else {
-            this.u8 = new Uint8Array(buffer);
-        }
+  constructor (buffer: ArrayBuffer, byteOffset?: number, byteLength?: number) {
+    if (byteOffset !== undefined) {
+      if (byteLength !== undefined) {
+        this.u8 = new Uint8Array(buffer, byteOffset, byteLength)
+      } else {
+        this.u8 = new Uint8Array(buffer, byteOffset)
+      }
+    } else {
+      this.u8 = new Uint8Array(buffer)
+    }
+  }
+
+  getUint8 (byteOffset: number, _littleEndian?: boolean): number {
+    return this.u8[byteOffset]
+  }
+
+  getUint16 (byteOffset: number, littleEndian?: boolean): number {
+    let low = 1; let high = 0
+    if (littleEndian) {
+      low = 0
+      high = 1
     }
 
-    getUint8(byteOffset: number): number {
-        return this.u8[byteOffset];
+    return (this.u8[byteOffset + high] << 8) | this.u8[byteOffset + low]
+  }
+
+  getUint32 (byteOffset: number, littleEndian?: boolean): number {
+    let low = 2; let high = 0
+    if (littleEndian) {
+      low = 0
+      high = 2
     }
 
-    getUint16(byteOffset: number, littleEndian: boolean): number {
-        var low = 1, high = 0;
-        if (littleEndian) {
-            low = 0;
-            high = 1;
-        }
+    return (this.getUint16(byteOffset + high, littleEndian) << 16) |
+                this.getUint16(byteOffset + low, littleEndian)
+  }
 
-        return (this.u8[byteOffset + high] << 8) | this.u8[byteOffset + low];
+  getUint64 (byteOffset: number, littleEndian?: boolean): number {
+    let low = 4; let high = 0
+    if (littleEndian) {
+      low = 0
+      high = 4
     }
 
-    getUint32(byteOffset: number, littleEndian: boolean): number {
-        var low = 2, high = 0;
-        if (littleEndian) {
-            low = 0;
-            high = 2;
-        }
+    return (this.getUint32(byteOffset + high, littleEndian) << 32) |
+                this.getUint32(byteOffset + low, littleEndian)
+  }
 
-        return (this.getUint16(byteOffset + high, littleEndian) << 16) |
-                this.getUint16(byteOffset + low, littleEndian);
+  setUint8 (byteOffset: number, b: number, _littleEndian?: boolean): void {
+    this.u8[byteOffset] = (b & 0xff)
+  }
+
+  setUint16 (byteOffset: number, i: number, littleEndian?: boolean): void {
+    let low = 1; let high = 0
+    if (littleEndian) {
+      low = 0
+      high = 1
+    }
+    this.u8[byteOffset + high] = (i & 0xffff) >> 8
+    this.u8[byteOffset + low] = (i & 0x00ff)
+  }
+
+  setUint32 (byteOffset: number, w: number, littleEndian?: boolean): void {
+    let low = 2; let high = 0
+    if (littleEndian) {
+      low = 0
+      high = 2
     }
 
-    getUint64(byteOffset: number, littleEndian: boolean): number {
-        var low = 4, high = 0;
-        if (littleEndian) {
-            low = 0;
-            high = 4;
-        }
+    this.setUint16(byteOffset + high, (w & 0xffffffff) >> 16, littleEndian)
+    this.setUint16(byteOffset + low, (w & 0x0000ffff), littleEndian)
+  }
 
-        return (this.getUint32(byteOffset + high, littleEndian) << 32) |
-                this.getUint32(byteOffset + low, littleEndian);
+  setUint64 (byteOffset: number, w: number, littleEndian?: boolean): void {
+    let low = 4; let high = 0
+    if (littleEndian) {
+      low = 0
+      high = 4
     }
 
-    setUint8(byteOffset: number, b: number): void {
-        this.u8[byteOffset] = (b & 0xff);
-    }
-
-    setUint16(byteOffset: number, i: number, littleEndian: boolean): void {
-        var low = 1, high = 0;
-        if (littleEndian) {
-            low = 0;
-            high = 1;
-        }
-        this.u8[byteOffset + high] = (i & 0xffff) >> 8;
-        this.u8[byteOffset + low]  = (i & 0x00ff);
-    }
-
-    setUint32(byteOffset: number, w: number, littleEndian: boolean): void {
-        var low = 2, high = 0;
-        if (littleEndian) {
-            low = 0;
-            high = 2;
-        }
-
-        this.setUint16(byteOffset + high, (w & 0xffffffff) >> 16, littleEndian);
-        this.setUint16(byteOffset + low,  (w & 0x0000ffff), littleEndian);
-    }
-
-    setUint64(byteOffset: number, w: number, littleEndian: boolean): void {
-        var low = 4, high = 0;
-        if (littleEndian) {
-            low = 0;
-            high = 4;
-        }
-
-        this.setUint32(byteOffset + high, (w & 0xffffffffffffffff) >> 32, littleEndian);
-        this.setUint32(byteOffset + low,  (w & 0x00000000ffffffff), littleEndian);
-    }
+    this.setUint32(byteOffset + high, (w & 0xffffffffffffffff) >> 32, littleEndian)
+    this.setUint32(byteOffset + low, (w & 0x00000000ffffffff), littleEndian)
+  }
 }

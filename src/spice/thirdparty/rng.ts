@@ -31,75 +31,72 @@
  * and disclaimer.
  */
 
-
 // Random number generator - requires a PRNG backend, e.g. prng4.js
-import { prng_newstate, rng_psize } from './prng4.ts';
+import { prng_newstate, rng_psize } from './prng4.js'
 
 // For best results, put code like
 // <body onClick='rng_seed_time();' onKeyPress='rng_seed_time();'>
 // in your main HTML document.
 
-var rng_state: any;
-var rng_pool: number[];
-var rng_pptr: number;
+let rng_state: any
+let rng_pool: number[]
+let rng_pptr: number
 
 // Mix in a 32-bit integer into the pool
-function rng_seed_int(x: number) {
-  rng_pool[rng_pptr++] ^= x & 255;
-  rng_pool[rng_pptr++] ^= (x >> 8) & 255;
-  rng_pool[rng_pptr++] ^= (x >> 16) & 255;
-  rng_pool[rng_pptr++] ^= (x >> 24) & 255;
-  if(rng_pptr >= rng_psize) rng_pptr -= rng_psize;
+function rng_seed_int (x: number) {
+  rng_pool[rng_pptr++] ^= x & 255
+  rng_pool[rng_pptr++] ^= (x >> 8) & 255
+  rng_pool[rng_pptr++] ^= (x >> 16) & 255
+  rng_pool[rng_pptr++] ^= (x >> 24) & 255
+  if (rng_pptr >= rng_psize) rng_pptr -= rng_psize
 }
 
 // Mix in the current time (w/milliseconds) into the pool
-function rng_seed_time() {
-  rng_seed_int(new Date().getTime());
+function rng_seed_time () {
+  rng_seed_int(new Date().getTime())
 }
 
 // Initialize the pool with junk if needed.
-if(rng_pool == null) {
-  rng_pool = new Array();
-  rng_pptr = 0;
-  var t: number;
-  if(navigator.appName == "Netscape" && navigator.appVersion < "5" && (window as any).crypto) {
+if (rng_pool == null) {
+  rng_pool = []
+  rng_pptr = 0
+  let t: number
+  if (navigator.appName == 'Netscape' && navigator.appVersion < '5' && (window as any).crypto) {
     // Extract entropy (256 bits) from NS4 RNG if available
-    var z = (window as any).crypto.random(32);
-    for(t = 0; t < z.length; ++t)
-      rng_pool[rng_pptr++] = z.charCodeAt(t) & 255;
+    const z = (window as any).crypto.random(32)
+    for (t = 0; t < z.length; ++t) { rng_pool[rng_pptr++] = z.charCodeAt(t) & 255 }
   }
-  while(rng_pptr < rng_psize) {  // extract some randomness from Math.random()
-    t = Math.floor(65536 * Math.random());
-    rng_pool[rng_pptr++] = t >>> 8;
-    rng_pool[rng_pptr++] = t & 255;
+  while (rng_pptr < rng_psize) { // extract some randomness from Math.random()
+    t = Math.floor(65536 * Math.random())
+    rng_pool[rng_pptr++] = t >>> 8
+    rng_pool[rng_pptr++] = t & 255
   }
-  rng_pptr = 0;
-  rng_seed_time();
-  //rng_seed_int(window.screenX);
-  //rng_seed_int(window.screenY);
+  rng_pptr = 0
+  rng_seed_time()
+  // rng_seed_int(window.screenX);
+  // rng_seed_int(window.screenY);
 }
 
-function rng_get_byte(): number {
-  if(rng_state == null) {
-    rng_seed_time();
-    rng_state = prng_newstate();
-    rng_state.init(rng_pool);
-    for(rng_pptr = 0; rng_pptr < rng_pool.length; ++rng_pptr)
-      rng_pool[rng_pptr] = 0;
-    rng_pptr = 0;
-    //rng_pool = null;
+function rng_get_byte (): number {
+  if (rng_state == null) {
+    rng_seed_time()
+    rng_state = prng_newstate()
+    rng_state.init(rng_pool)
+    for (rng_pptr = 0; rng_pptr < rng_pool.length; ++rng_pptr) { rng_pool[rng_pptr] = 0 }
+    rng_pptr = 0
+    // rng_pool = null;
   }
   // TODO: allow reseeding after first request
-  return rng_state.next();
+  return rng_state.next()
 }
 
-function rng_get_bytes(ba: number[]) {
-  var i: number;
-  for(i = 0; i < ba.length; ++i) ba[i] = rng_get_byte();
+function rng_get_bytes (ba: number[]) {
+  let i: number
+  for (i = 0; i < ba.length; ++i) ba[i] = rng_get_byte()
 }
 
 export class SecureRandom {
-  nextBytes(ba: number[]) {
-    rng_get_bytes(ba);
+  nextBytes (ba: number[]) {
+    rng_get_bytes(ba)
   }
 }

@@ -18,65 +18,65 @@
    along with spice-html5.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-import { Constants } from './enums';
-import { DEBUG, arraybuffer_to_str } from './utils';
-import { SpiceConn } from './spiceconn';
-import { SpiceMsgPortInit } from './spicemsg';
+import { Constants } from './enums'
+import { DEBUG, arraybuffer_to_str } from './utils'
+import { SpiceConn } from './spiceconn'
+import { SpiceMsgPortInit } from './spicemsg'
 
-/*----------------------------------------------------------------------------
+/* ----------------------------------------------------------------------------
 **  SpicePortConn
 **      Drive the Spice Port Channel
-**--------------------------------------------------------------------------*/
+**-------------------------------------------------------------------------- */
 export class SpicePortConn extends SpiceConn {
-    port_name: string | null = null;
-    portName: string = '';
-    portOpened: boolean = false;
+  port_name: string | null = null
+  portName: string = ''
+  portOpened: boolean = false
 
-    constructor(...args: any[]) {
-        super(...args);
-        DEBUG > 0 && console.log('SPICE port: created SPICE port channel. Args:', args);
+  constructor (...args: any[]) {
+    super(...args)
+    DEBUG > 0 && console.log('SPICE port: created SPICE port channel. Args:', args)
+  }
+
+  process_channel_message (msg: any): boolean {
+    if (msg.type == Constants.SPICE_MSG_PORT_INIT) {
+      if (this.port_name === null) {
+        const m = new SpiceMsgPortInit(msg.data)
+        this.portName = arraybuffer_to_str(new Uint8Array(m.name))
+        this.portOpened = m.opened
+        DEBUG > 0 && console.log('SPICE port: Port', this.portName, 'initialized')
+        return true
+      }
+
+      DEBUG > 0 && console.log('SPICE port: Port', this.port_name, 'is already initialized.')
+    } else if (msg.type == Constants.SPICE_MSG_PORT_EVENT) {
+      DEBUG > 0 && console.log('SPICE port: Port event received for', this.portName, msg)
+      var event = new CustomEvent('spice-port-event', {
+        detail: {
+          channel: this,
+          spiceEvent: new Uint8Array(msg.data)
+        },
+        bubbles: true,
+        cancelable: true
+      })
+
+      window.dispatchEvent(event)
+      return true
+    } else if (msg.type == Constants.SPICE_MSG_SPICEVMC_DATA) {
+      DEBUG > 0 && console.log('SPICE port: Data received in port', this.portName, msg)
+      var event = new CustomEvent('spice-port-data', {
+        detail: {
+          channel: this,
+          data: msg.data
+        },
+        bubbles: true,
+        cancelable: true
+      })
+      window.dispatchEvent(event)
+      return true
+    } else {
+      DEBUG > 0 && console.log('SPICE port: SPICE message type not recognized:', msg)
     }
 
-    process_channel_message(msg: any): boolean {
-        if (msg.type == Constants.SPICE_MSG_PORT_INIT) {
-            if (this.port_name === null) {
-                var m = new SpiceMsgPortInit(msg.data);
-                this.portName = arraybuffer_to_str(new Uint8Array(m.name));
-                this.portOpened = m.opened;
-                DEBUG > 0 && console.log('SPICE port: Port', this.portName, 'initialized');
-                return true;
-            }
-
-            DEBUG > 0 && console.log('SPICE port: Port', this.port_name, 'is already initialized.');
-        } else if (msg.type == Constants.SPICE_MSG_PORT_EVENT) {
-            DEBUG > 0 && console.log('SPICE port: Port event received for', this.portName, msg);
-            var event = new CustomEvent('spice-port-event', {
-                detail: {
-                    channel: this,
-                    spiceEvent: new Uint8Array(msg.data)
-                },
-                bubbles: true,
-                cancelable: true
-            });
-
-            window.dispatchEvent(event);
-            return true;
-        } else if (msg.type == Constants.SPICE_MSG_SPICEVMC_DATA) {
-            DEBUG > 0 && console.log('SPICE port: Data received in port', this.portName, msg);
-            var event = new CustomEvent('spice-port-data', {
-                detail: {
-                    channel: this,
-                    data: msg.data
-                },
-                bubbles: true,
-                cancelable: true
-            });
-            window.dispatchEvent(event);
-            return true;
-        } else {
-            DEBUG > 0 && console.log('SPICE port: SPICE message type not recognized:', msg);
-        }
-
-        return false;
-    }
+    return false
+  }
 }

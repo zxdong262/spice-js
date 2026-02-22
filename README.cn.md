@@ -16,6 +16,7 @@
 - 将 JavaScript 代码转换为 TypeScript
 - 添加了单元测试
 - 使用 Vite 实现了现代化的构建流程
+- 添加了 LZ4 图像压缩支持
 
 TypeScript 转换和构建配置代码是在 Trae Solo Coder 模式下借助 GLM-5 模型辅助生成的。
 

@@ -22,7 +22,26 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "install:all": "npm install && cd src/web-demo && npm install",
-    "start": "npm run server & npm run dev"
+    "start": "npm run server & npm run dev",
+    "lint": "ts-standard",
+    "lint:fix": "ts-standard --fix",
+    "format": "ts-standard --fix"
+  },
+  "ts-standard": {
+    "files": [
+      "src/spice/**/*.ts"
+    ],
+    "env": {
+      "browser": true,
+      "node": true
+    },
+    "ignore": [
+      "tests/**",
+      "build/**",
+      "src/web-demo/**",
+      "vitest.config.ts",
+      "playwright.config.ts"
+    ]
   },
   "keywords": [
     "spice",
@@ -59,14 +78,15 @@
     "@types/react-dom": "^18.2.18",
     "@types/ws": "^8.5.10",
     "@vitejs/plugin-react": "^4.2.1",
-    "tsx": "^4.7.0",
-    "typescript": "^5.3.3",
-    "vite": "^5.0.10",
-    "vitest": "^4.0.18",
     "express": "^4.18.2",
     "express-ws": "^5.0.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "ts-standard": "^12.0.2",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.10",
+    "vitest": "^4.0.18",
     "ws": "^8.14.2"
   }
 }
