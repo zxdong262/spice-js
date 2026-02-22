@@ -18,6 +18,7 @@
 */
 
 import * as Messages from './spicemsg'
+import { SpiceMsgcMousePosition, SpiceMsgcMouseMotion, SpiceMsgcMousePress, SpiceMsgcMouseRelease } from './mouse'
 import { Constants } from './enums'
 import { KeyNames } from './atKeynames'
 import { SpiceConn } from './spiceconn'
@@ -79,10 +80,10 @@ export function handle_mousemove (this: { sc: any }, e: MouseEvent) {
   const msg = new Messages.SpiceMiniData()
   let move
   if (this.sc.mouse_mode == Constants.SPICE_MOUSE_MODE_CLIENT) {
-    move = new Messages.SpiceMsgcMousePosition(this.sc, e)
+    move = new SpiceMsgcMousePosition(this.sc, e)
     msg.build_msg(Constants.SPICE_MSGC_INPUTS_MOUSE_POSITION, move)
   } else {
-    move = new Messages.SpiceMsgcMouseMotion(this.sc, e)
+    move = new SpiceMsgcMouseMotion(this.sc, e)
     msg.build_msg(Constants.SPICE_MSGC_INPUTS_MOUSE_MOTION, move)
   }
   if (this.sc && this.sc.inputs && this.sc.inputs.state === 'ready') {
@@ -103,7 +104,7 @@ export function handle_mousemove (this: { sc: any }, e: MouseEvent) {
 }
 
 export function handle_mousedown (this: { sc: any }, e: MouseEvent) {
-  const press = new Messages.SpiceMsgcMousePress(this.sc, e)
+  const press = new SpiceMsgcMousePress(this.sc, e)
   const msg = new Messages.SpiceMiniData()
   msg.build_msg(Constants.SPICE_MSGC_INPUTS_MOUSE_PRESS, press)
   if (this.sc && this.sc.inputs && this.sc.inputs.state === 'ready') {
@@ -119,7 +120,7 @@ export function handle_contextmenu (this: any, e: MouseEvent) {
 }
 
 export function handle_mouseup (this: { sc: any }, e: MouseEvent) {
-  const release = new Messages.SpiceMsgcMouseRelease(this.sc, e)
+  const release = new SpiceMsgcMouseRelease(this.sc, e)
   const msg = new Messages.SpiceMiniData()
   msg.build_msg(Constants.SPICE_MSGC_INPUTS_MOUSE_RELEASE, release)
   if (this.sc && this.sc.inputs && this.sc.inputs.state === 'ready') {
@@ -130,8 +131,8 @@ export function handle_mouseup (this: { sc: any }, e: MouseEvent) {
 }
 
 export function handle_mousewheel (this: { sc: any }, e: WheelEvent) {
-  const press = new Messages.SpiceMsgcMousePress()
-  const release = new Messages.SpiceMsgcMouseRelease()
+  const press = new SpiceMsgcMousePress()
+  const release = new SpiceMsgcMouseRelease()
   if (e.deltaY < 0) {
     press.button = release.button = Constants.SPICE_MOUSE_BUTTON_UP
   } else {
