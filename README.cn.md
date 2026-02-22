@@ -1,6 +1,6 @@
 # spice-client
 
-[English](./README.md)
+[English](./README.md) | [中文](./README.cn.md)
 
 [spice-html5](https://gitlab.freedesktop.org/spice/spice-html5.git) 的 TypeScript 移植版 - SPICE 协议的 JavaScript 客户端。
 
@@ -18,6 +18,7 @@
 - 使用 Vite 实现了现代化的构建流程
 - 添加了 LZ4 图像压缩支持
 - 优化消息处理，直接处理多个 ArrayBuffer，避免缓冲区拼接开销
+- 单 ArrayBuffer 操作使用原生 DataView，仅在多缓冲区场景下使用自定义 SpiceDataView
 
 TypeScript 转换和构建配置代码是在 Trae Solo Coder 模式下借助 GLM-5 模型辅助生成的。
 

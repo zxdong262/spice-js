@@ -18,6 +18,8 @@
  *    along with spice-html5.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+import { SpiceDataView } from './spicedataview'
+
 let encoder: QuicEncoder | undefined
 
 const Constants = {
@@ -1223,7 +1225,7 @@ class SpiceQuic {
   width: number = 0
   height: number = 0
 
-  from_dv (dv: DataView, at: number, mb: ArrayBuffer | ArrayBuffer[]): number {
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: ArrayBuffer | ArrayBuffer[]): number {
     if (!encoder) { throw ('quic: no quic encoder') }
     this.data_size = dv.getUint32(at, true)
     at += 4

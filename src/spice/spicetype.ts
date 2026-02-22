@@ -30,13 +30,20 @@ import { SpiceDataView } from './spicedataview'
 
 type BufferInput = ArrayBuffer | ArrayBuffer[]
 
+function getUint64 (dv: DataView | SpiceDataView, at: number, littleEndian?: boolean): number {
+  if (dv instanceof SpiceDataView) {
+    return dv.getUint64(at, littleEndian)
+  }
+  return Number((dv as DataView).getBigUint64(at, littleEndian))
+}
+
 export class SpiceChannelId {
   type: number = 0
   id: number = 0
 
   from_dv (dv: DataView | SpiceDataView, at: number, mb: BufferInput): number {
-    this.type = dv.getUint8(at, true); at++
-    this.id = dv.getUint8(at, true); at++
+    this.type = dv.getUint8(at); at++
+    this.id = dv.getUint8(at); at++
     return at
   }
 }
@@ -87,7 +94,7 @@ export class SpiceClip {
   rects: SpiceClipRects | undefined
 
   from_dv (dv: DataView | SpiceDataView, at: number, mb: BufferInput): number {
-    this.type = dv.getUint8(at, true); at++
+    this.type = dv.getUint8(at); at++
     if (this.type == Constants.SPICE_CLIP_TYPE_RECTS) {
       this.rects = new SpiceClipRects()
       at = this.rects.from_dv(dv, at, mb)
@@ -104,9 +111,9 @@ export class SpiceImageDescriptor {
   height: number = 0
 
   from_dv (dv: DataView | SpiceDataView, at: number, mb: BufferInput): number {
-    this.id = dv.getUint64(at, true); at += 8
-    this.type = dv.getUint8(at, true); at++
-    this.flags = dv.getUint8(at, true); at++
+    this.id = getUint64(dv, at, true); at += 8
+    this.type = dv.getUint8(at); at++
+    this.flags = dv.getUint8(at); at++
     this.width = dv.getUint32(at, true); at += 4
     this.height = dv.getUint32(at, true); at += 4
     return at
@@ -120,7 +127,7 @@ export class SpicePalette {
 
   from_dv (dv: DataView | SpiceDataView, at: number, mb: BufferInput): number {
     let i: number
-    this.unique = dv.getUint64(at, true); at += 8
+    this.unique = getUint64(dv, at, true); at += 8
     this.num_ents = dv.getUint16(at, true); at += 2
     this.ents = []
     for (i = 0; i < this.num_ents; i++) {
@@ -149,13 +156,13 @@ export class SpiceBitmap {
   data: ArrayBuffer = new ArrayBuffer(0)
 
   from_dv (dv: DataView | SpiceDataView, at: number, mb: BufferInput): number {
-    this.format = dv.getUint8(at, true); at++
-    this.flags = dv.getUint8(at, true); at++
+    this.format = dv.getUint8(at); at++
+    this.flags = dv.getUint8(at); at++
     this.x = dv.getUint32(at, true); at += 4
     this.y = dv.getUint32(at, true); at += 4
     this.stride = dv.getUint32(at, true); at += 4
     if (this.flags & Constants.SPICE_BITMAP_FLAGS_PAL_FROM_CACHE) {
-      this.palette_id = dv.getUint64(at, true); at += 8
+      this.palette_id = getUint64(dv, at, true); at += 8
     } else {
       const offset = dv.getUint32(at, true); at += 4
       if (offset == 0) {
@@ -225,7 +232,7 @@ export class SpiceImage {
 
     if (this.descriptor.type == Constants.SPICE_IMAGE_TYPE_JPEG_ALPHA) {
       this.jpeg_alpha = new Object()
-      this.jpeg_alpha.flags = dv.getUint8(at, true); at += 1
+      this.jpeg_alpha.flags = dv.getUint8(at); at += 1
       this.jpeg_alpha.jpeg_size = dv.getUint32(at, true); at += 4
       this.jpeg_alpha.data_size = dv.getUint32(at, true); at += 4
       this.jpeg_alpha.data = sliceBuffer(mb, at, this.jpeg_alpha.jpeg_size + at)
@@ -266,7 +273,7 @@ export class SpiceQMask {
   bitmap: SpiceImage | null = null
 
   from_dv (dv: DataView | SpiceDataView, at: number, mb: BufferInput): number {
-    this.flags = dv.getUint8(at, true); at++
+    this.flags = dv.getUint8(at); at++
     this.pos = new SpicePoint()
     at = this.pos.from_dv(dv, at, mb)
     const offset = dv.getUint32(at, true); at += 4
@@ -304,7 +311,7 @@ export class SpiceBrush {
   pattern?: SpicePattern
 
   from_dv (dv: DataView | SpiceDataView, at: number, mb: BufferInput): number {
-    this.type = dv.getUint8(at, true); at++
+    this.type = dv.getUint8(at); at++
     if (this.type == Constants.SPICE_BRUSH_TYPE_SOLID) {
       this.color = dv.getUint32(at, true); at += 4
     } else if (this.type == Constants.SPICE_BRUSH_TYPE_PATTERN) {
@@ -347,7 +354,7 @@ export class SpiceCopy {
     this.src_area = new SpiceRect()
     at = this.src_area.from_dv(dv, at, mb)
     this.rop_descriptor = dv.getUint16(at, true); at += 2
-    this.scale_mode = dv.getUint8(at, true); at++
+    this.scale_mode = dv.getUint8(at); at++
     this.mask = new SpiceQMask()
     return this.mask.from_dv(dv, at, mb)
   }
@@ -384,8 +391,8 @@ export class SpiceCursorHeader {
   hot_spot_y: number = 0
 
   from_dv (dv: DataView | SpiceDataView, at: number, mb: BufferInput): number {
-    this.unique = dv.getUint64(at, true); at += 8
-    this.type = dv.getUint8(at, true); at++
+    this.unique = getUint64(dv, at, true); at += 8
+    this.type = dv.getUint8(at); at++
     this.width = dv.getUint16(at, true); at += 2
     this.height = dv.getUint16(at, true); at += 2
     this.hot_spot_x = dv.getUint16(at, true); at += 2

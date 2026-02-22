@@ -61,7 +61,7 @@ class SpiceLinkHeader {
 
   from_buffer (a: BufferInput, at?: number): void {
     at = at || 0
-    const dv = new SpiceDataView(a)
+    const dv = Array.isArray(a) ? new SpiceDataView(a) : new DataView(a)
     this.magic = ''
     for (let i = 0; i < 4; i++) { this.magic += String.fromCharCode(dv.getUint8(at + i)) }
     at += 4
@@ -73,7 +73,7 @@ class SpiceLinkHeader {
 
   to_buffer (a: ArrayBuffer, at?: number): void {
     at = at || 0
-    const dv = new SpiceDataView(a)
+    const dv = new DataView(a)
     for (let i = 0; i < 4; i++) { dv.setUint8(at + i, this.magic.charCodeAt(i)) }
     at += 4
 
@@ -108,10 +108,10 @@ class SpiceLinkMess {
     at = at || 0
     let i: number
     const orig_at = at
-    const dv = new SpiceDataView(a)
+    const dv = Array.isArray(a) ? new SpiceDataView(a) : new DataView(a)
     this.connection_id = dv.getUint32(at, true); at += 4
-    this.channel_type = dv.getUint8(at, true); at++
-    this.channel_id = dv.getUint8(at, true); at++
+    this.channel_type = dv.getUint8(at); at++
+    this.channel_id = dv.getUint8(at); at++
     const num_common_caps = dv.getUint32(at, true); at += 4
     const num_channel_caps = dv.getUint32(at, true); at += 4
     const caps_offset = dv.getUint32(at, true); at += 4
@@ -132,10 +132,10 @@ class SpiceLinkMess {
     at = at || 0
     const orig_at = at
     let i: number
-    const dv = new SpiceDataView(a)
+    const dv = new DataView(a)
     dv.setUint32(at, this.connection_id, true); at += 4
-    dv.setUint8(at, this.channel_type, true); at++
-    dv.setUint8(at, this.channel_id, true); at++
+    dv.setUint8(at, this.channel_type); at++
+    dv.setUint8(at, this.channel_id); at++
     dv.setUint32(at, this.common_caps.length, true); at += 4
     dv.setUint32(at, this.channel_caps.length, true); at += 4
     dv.setUint32(at, (at - orig_at) + 4, true); at += 4
@@ -173,7 +173,7 @@ class SpiceLinkReply {
     at = at || 0
     let i: number
     const orig_at = at
-    const dv = new SpiceDataView(a)
+    const dv = Array.isArray(a) ? new SpiceDataView(a) : new DataView(a)
     this.error = dv.getUint32(at, true); at += 4
 
     this.pub_key = create_rsa_from_mb(a, at)
@@ -208,10 +208,10 @@ class SpiceLinkAuthTicket {
   to_buffer (a: ArrayBuffer, at?: number): void {
     at = at || 0
     let i: number
-    const dv = new SpiceDataView(a)
+    const dv = new DataView(a)
     dv.setUint32(at, this.auth_mechanism, true); at += 4
     for (i = 0; i < Constants.SPICE_TICKET_KEY_PAIR_LENGTH / 8; i++) {
-      if (this.encrypted_data && i < this.encrypted_data.length) { dv.setUint8(at, this.encrypted_data[i], true) } else { dv.setUint8(at, 0, true) }
+      if (this.encrypted_data && i < this.encrypted_data.length) { dv.setUint8(at, this.encrypted_data[i]) } else { dv.setUint8(at, 0) }
       at++
     }
   }
@@ -231,7 +231,7 @@ class SpiceLinkAuthReply {
 
   from_buffer (a: BufferInput, at?: number): void {
     at = at || 0
-    const dv = new SpiceDataView(a)
+    const dv = Array.isArray(a) ? new SpiceDataView(a) : new DataView(a)
     this.auth_code = dv.getUint32(at, true); at += 4
   }
 
@@ -254,25 +254,35 @@ class SpiceMiniData {
 
   from_buffer (a: BufferInput, at?: number): void {
     at = at || 0
-    let i: number
-    const dv = new SpiceDataView(a)
-    this.type = dv.getUint16(at, true); at += 2
-    this.size = dv.getUint32(at, true); at += 4
-    if (dv.u8.length > at) {
-      this.data = dv.sliceData(at)
-      at += this.data.byteLength
+    if (Array.isArray(a)) {
+      const dv = new SpiceDataView(a)
+      this.type = dv.getUint16(at, true); at += 2
+      this.size = dv.getUint32(at, true); at += 4
+      if (dv.u8.length > at) {
+        this.data = dv.sliceData(at)
+        at += this.data.byteLength
+      }
+    } else {
+      const dv = new DataView(a)
+      this.type = dv.getUint16(at, true); at += 2
+      this.size = dv.getUint32(at, true); at += 4
+      const u8 = new Uint8Array(a)
+      if (u8.length > at) {
+        this.data = u8.slice(at).buffer
+        at += this.data.byteLength
+      }
     }
   }
 
   to_buffer (a: ArrayBuffer, at?: number): void {
     at = at || 0
     let i: number
-    const dv = new SpiceDataView(a)
+    const dv = new DataView(a)
     dv.setUint16(at, this.type, true); at += 2
     dv.setUint32(at, this.data ? this.data.byteLength : 0, true); at += 4
     if (this.data && this.data.byteLength > 0) {
       const u8arr = new Uint8Array(this.data)
-      for (i = 0; i < u8arr.length; i++, at++) { dv.setUint8(at, u8arr[i], true) }
+      for (i = 0; i < u8arr.length; i++, at++) { dv.setUint8(at, u8arr[i]) }
     }
   }
 
@@ -301,7 +311,7 @@ class SpiceMsgChannels {
   from_buffer (a: BufferInput, at?: number): void {
     at = at || 0
     let i: number
-    const dv = new SpiceDataView(a)
+    const dv = Array.isArray(a) ? new SpiceDataView(a) : new DataView(a)
     this.num_of_channels = dv.getUint32(at, true); at += 4
     for (i = 0; i < this.num_of_channels; i++) {
       const chan = new SpiceChannelId()
@@ -326,7 +336,7 @@ class SpiceMsgClipboardGrab {
 
   to_buffer (a: ArrayBuffer, at?: number): void {
     at = at || 0
-    const dv = new SpiceDataView(a)
+    const dv = new DataView(a)
     if (this.has_clipboard_selection) {
       dv.setUint32(at, 0, true); at += 4
     }
@@ -367,7 +377,7 @@ class SpiceMsgClipboardRequest {
 
   to_buffer (a: ArrayBuffer, at?: number): void {
     at = at || 0
-    const dv = new SpiceDataView(a)
+    const dv = new DataView(a)
     if (this.has_clipboard_selection) {
       dv.setUint32(at, 0, true); at += 4
     }
@@ -392,7 +402,7 @@ class SpiceMsgClipboardSend {
 
   to_buffer (a: ArrayBuffer, at?: number): void {
     at = at || 0
-    const dv = new SpiceDataView(a)
+    const dv = new DataView(a)
     if (this.has_clipboard_selection) {
       dv.setUint32(at, 0, true); at += 4
     }
@@ -423,7 +433,7 @@ class SpiceMsgMainInit {
 
   from_buffer (a: BufferInput, at?: number): void {
     at = at || 0
-    const dv = new SpiceDataView(a)
+    const dv = Array.isArray(a) ? new SpiceDataView(a) : new DataView(a)
     this.session_id = dv.getUint32(at, true); at += 4
     this.display_channels_hint = dv.getUint32(at, true); at += 4
     this.supported_mouse_modes = dv.getUint32(at, true); at += 4
@@ -445,7 +455,7 @@ class SpiceMsgMainMouseMode {
 
   from_buffer (a: BufferInput, at?: number): void {
     at = at || 0
-    const dv = new SpiceDataView(a)
+    const dv = Array.isArray(a) ? new SpiceDataView(a) : new DataView(a)
     this.supported_modes = dv.getUint16(at, true); at += 2
     this.current_mode = dv.getUint16(at, true); at += 2
   }
@@ -464,14 +474,27 @@ class SpiceMsgMainAgentData {
 
   from_buffer (a: BufferInput, at?: number): void {
     at = at || 0
-    const dv = new SpiceDataView(a)
-    this.protocol = dv.getUint32(at, true); at += 4
-    this.type = dv.getUint32(at, true); at += 4
-    this.opaque = dv.getUint64(at, true); at += 8
-    this.size = dv.getUint32(at, true); at += 4
-    if (dv.u8.length > at) {
-      this.data = dv.sliceData(at)
-      at += this.data.byteLength
+    if (Array.isArray(a)) {
+      const dv = new SpiceDataView(a)
+      this.protocol = dv.getUint32(at, true); at += 4
+      this.type = dv.getUint32(at, true); at += 4
+      this.opaque = dv.getUint64(at, true); at += 8
+      this.size = dv.getUint32(at, true); at += 4
+      if (dv.u8.length > at) {
+        this.data = dv.sliceData(at)
+        at += this.data.byteLength
+      }
+    } else {
+      const dv = new DataView(a)
+      this.protocol = dv.getUint32(at, true); at += 4
+      this.type = dv.getUint32(at, true); at += 4
+      this.opaque = Number(dv.getBigUint64(at, true)); at += 8
+      this.size = dv.getUint32(at, true); at += 4
+      const u8 = new Uint8Array(a)
+      if (u8.length > at) {
+        this.data = u8.slice(at).buffer
+        at += this.data.byteLength
+      }
     }
   }
 }
@@ -485,7 +508,7 @@ class SpiceMsgMainAgentTokens {
 
   from_buffer (a: BufferInput, at?: number): void {
     at = at || 0
-    const dv = new SpiceDataView(a)
+    const dv = Array.isArray(a) ? new SpiceDataView(a) : new DataView(a)
     this.num_tokens = dv.getUint32(at, true); at += 4
   }
 }
@@ -500,7 +523,7 @@ class SpiceMsgSetAck {
 
   from_buffer (a: BufferInput, at?: number): void {
     at = at || 0
-    const dv = new SpiceDataView(a)
+    const dv = Array.isArray(a) ? new SpiceDataView(a) : new DataView(a)
     this.generation = dv.getUint32(at, true); at += 4
     this.window = dv.getUint32(at, true); at += 4
   }
@@ -515,7 +538,7 @@ class SpiceMsgcAckSync {
 
   to_buffer (a: ArrayBuffer, at?: number): void {
     at = at || 0
-    const dv = new SpiceDataView(a)
+    const dv = new DataView(a)
     dv.setUint32(at, this.generation, true); at += 4
   }
 
@@ -533,7 +556,7 @@ class SpiceMsgcMainMouseModeRequest {
 
   to_buffer (a: ArrayBuffer, at?: number): void {
     at = at || 0
-    const dv = new SpiceDataView(a)
+    const dv = new DataView(a)
     dv.setUint16(at, this.mode, true); at += 2
   }
 
@@ -551,7 +574,7 @@ class SpiceMsgcMainAgentStart {
 
   to_buffer (a: ArrayBuffer, at?: number): void {
     at = at || 0
-    const dv = new SpiceDataView(a)
+    const dv = new DataView(a)
     dv.setUint32(at, this.num_tokens, true); at += 4
   }
 
@@ -577,10 +600,10 @@ class SpiceMsgcMainAgentData {
 
   to_buffer (a: ArrayBuffer, at?: number): void {
     at = at || 0
-    const dv = new SpiceDataView(a)
+    const dv = new DataView(a)
     dv.setUint32(at, this.protocol, true); at += 4
     dv.setUint32(at, this.type, true); at += 4
-    dv.setUint64(at, this.opaque, true); at += 8
+    dv.setBigUint64(at, BigInt(this.opaque), true); at += 8
     dv.setUint32(at, this.size, true); at += 4
     this.data.to_buffer(a, at)
   }
@@ -603,14 +626,14 @@ class VDAgentAnnounceCapabilities {
 
   to_buffer (a: ArrayBuffer, at?: number): void {
     at = at || 0
-    const dv = new SpiceDataView(a)
+    const dv = new DataView(a)
     dv.setUint32(at, this.request, true); at += 4
     dv.setUint32(at, this.caps, true); at += 4
   }
 
   from_buffer (a: ArrayBuffer, at?: number): number {
     at = at || 0
-    const dv = new SpiceDataView(a)
+    const dv = new DataView(a)
     this.request = dv.getUint32(at, true); at += 4
     this.caps = dv.getUint32(at, true); at += 4
     return at
@@ -642,7 +665,7 @@ class VDAgentMonitorsConfig {
 
   to_buffer (a: ArrayBuffer, at?: number): void {
     at = at || 0
-    const dv = new SpiceDataView(a)
+    const dv = new DataView(a)
     dv.setUint32(at, this.num_mon, true); at += 4
     dv.setUint32(at, this.flags, true); at += 4
     dv.setUint32(at, this.height, true); at += 4
@@ -670,14 +693,14 @@ class VDAgentFileXferStatusMessage {
 
   to_buffer (a: ArrayBuffer, at?: number): void {
     at = at || 0
-    const dv = new SpiceDataView(a)
+    const dv = new DataView(a)
     dv.setUint32(at, this.id, true); at += 4
     dv.setUint32(at, this.result, true); at += 4
   }
 
   from_buffer (a: ArrayBuffer, at?: number): number {
     at = at || 0
-    const dv = new SpiceDataView(a)
+    const dv = new DataView(a)
     this.id = dv.getUint32(at, true); at += 4
     this.result = dv.getUint32(at, true); at += 4
     return at
@@ -699,7 +722,7 @@ class VDAgentFileXferStartMessage {
 
   to_buffer (a: ArrayBuffer, at?: number): void {
     at = at || 0
-    const dv = new SpiceDataView(a)
+    const dv = new DataView(a)
     dv.setUint32(at, this.id, true); at += 4
     for (let i = 0; i < this.string.length; i++, at++) { dv.setUint8(at, this.string.charCodeAt(i)) }
   }
@@ -722,9 +745,9 @@ class VDAgentFileXferDataMessage {
 
   to_buffer (a: ArrayBuffer, at?: number): void {
     at = at || 0
-    const dv = new SpiceDataView(a)
+    const dv = new DataView(a)
     dv.setUint32(at, this.id, true); at += 4
-    dv.setUint64(at, this.size, true); at += 8
+    dv.setBigUint64(at, BigInt(this.size), true); at += 8
     if (this.data && this.data.byteLength > 0) {
       const u8arr = new Uint8Array(this.data)
       for (let i = 0; i < u8arr.length; i++, at++) { dv.setUint8(at, u8arr[i]) }
@@ -751,16 +774,30 @@ class SpiceMsgNotify {
   from_buffer (a: BufferInput, at?: number): void {
     at = at || 0
     let i: number
-    const dv = new SpiceDataView(a)
-    this.time_stamp = dv.getUint64(at, true); at += 8
-    this.severity = dv.getUint32(at, true); at += 4
-    this.visibility = dv.getUint32(at, true); at += 4
-    this.what = dv.getUint32(at, true); at += 4
-    this.message_len = dv.getUint32(at, true); at += 4
-    this.message = ''
-    for (i = 0; i < this.message_len; i++) {
-      const c = dv.getUint8(at, true); at++
-      this.message += String.fromCharCode(c)
+    if (Array.isArray(a)) {
+      const dv = new SpiceDataView(a)
+      this.time_stamp = dv.getUint64(at, true); at += 8
+      this.severity = dv.getUint32(at, true); at += 4
+      this.visibility = dv.getUint32(at, true); at += 4
+      this.what = dv.getUint32(at, true); at += 4
+      this.message_len = dv.getUint32(at, true); at += 4
+      this.message = ''
+      for (i = 0; i < this.message_len; i++) {
+        const c = dv.getUint8(at); at++
+        this.message += String.fromCharCode(c)
+      }
+    } else {
+      const dv = new DataView(a)
+      this.time_stamp = Number(dv.getBigUint64(at, true)); at += 8
+      this.severity = dv.getUint32(at, true); at += 4
+      this.visibility = dv.getUint32(at, true); at += 4
+      this.what = dv.getUint32(at, true); at += 4
+      this.message_len = dv.getUint32(at, true); at += 4
+      this.message = ''
+      for (i = 0; i < this.message_len; i++) {
+        const c = dv.getUint8(at); at++
+        this.message += String.fromCharCode(c)
+      }
     }
   }
 }
@@ -780,10 +817,10 @@ class SpiceMsgcDisplayInit {
 
   to_buffer (a: ArrayBuffer, at?: number): void {
     at = at || 0
-    const dv = new SpiceDataView(a)
-    dv.setUint8(at, this.pixmap_cache_id, true); at++
-    dv.setUint64(at, this.pixmap_cache_size, true); at += 8
-    dv.setUint8(at, this.glz_dictionary_id, true); at++
+    const dv = new DataView(a)
+    dv.setUint8(at, this.pixmap_cache_id); at++
+    dv.setBigUint64(at, BigInt(this.pixmap_cache_size), true); at += 8
+    dv.setUint8(at, this.glz_dictionary_id); at++
     dv.setUint32(at, this.glz_dictionary_window_size, true); at += 4
   }
 
@@ -797,7 +834,7 @@ class SpiceMsgDisplayBase {
   box: SpiceRect
   clip: SpiceClip
 
-  from_dv (dv: SpiceDataView, at: number, mb: BufferInput): number {
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: BufferInput): number {
     this.surface_id = dv.getUint32(at, true); at += 4
     this.box = new SpiceRect()
     at = this.box.from_dv(dv, at, mb)
@@ -816,7 +853,7 @@ class SpiceMsgDisplayDrawCopy {
 
   from_buffer (a: BufferInput, at?: number): number {
     at = at || 0
-    const dv = new SpiceDataView(a)
+    const dv = Array.isArray(a) ? new SpiceDataView(a) : new DataView(a)
     this.base = new SpiceMsgDisplayBase()
     at = this.base.from_dv(dv, at, a)
     this.data = new SpiceCopy()
@@ -834,7 +871,7 @@ class SpiceMsgDisplayDrawFill {
 
   from_buffer (a: BufferInput, at?: number): number {
     at = at || 0
-    const dv = new SpiceDataView(a)
+    const dv = Array.isArray(a) ? new SpiceDataView(a) : new DataView(a)
     this.base = new SpiceMsgDisplayBase()
     at = this.base.from_dv(dv, at, a)
     this.data = new SpiceFill()
@@ -852,7 +889,7 @@ class SpiceMsgDisplayCopyBits {
 
   from_buffer (a: BufferInput, at?: number): number {
     at = at || 0
-    const dv = new SpiceDataView(a)
+    const dv = Array.isArray(a) ? new SpiceDataView(a) : new DataView(a)
     this.base = new SpiceMsgDisplayBase()
     at = this.base.from_dv(dv, at, a)
     this.src_pos = new SpicePoint()
@@ -869,7 +906,7 @@ class SpiceMsgSurfaceCreate {
 
   from_buffer (a: BufferInput, at?: number): number {
     at = at || 0
-    const dv = new SpiceDataView(a)
+    const dv = Array.isArray(a) ? new SpiceDataView(a) : new DataView(a)
     this.surface = new SpiceSurface()
     return this.surface.from_dv(dv, at, a)
   }
@@ -884,7 +921,7 @@ class SpiceMsgSurfaceDestroy {
 
   from_buffer (a: BufferInput, at?: number): void {
     at = at || 0
-    const dv = new SpiceDataView(a)
+    const dv = Array.isArray(a) ? new SpiceDataView(a) : new DataView(a)
     this.surface_id = dv.getUint32(at, true); at += 4
   }
 }
@@ -898,7 +935,7 @@ class SpiceMsgInputsInit {
 
   from_buffer (a: BufferInput, at?: number): number {
     at = at || 0
-    const dv = new SpiceDataView(a)
+    const dv = Array.isArray(a) ? new SpiceDataView(a) : new DataView(a)
     this.keyboard_modifiers = dv.getUint16(at, true); at += 2
     return at
   }
@@ -913,7 +950,7 @@ class SpiceMsgInputsKeyModifiers {
 
   from_buffer (a: BufferInput, at?: number): number {
     at = at || 0
-    const dv = new SpiceDataView(a)
+    const dv = Array.isArray(a) ? new SpiceDataView(a) : new DataView(a)
     this.keyboard_modifiers = dv.getUint16(at, true); at += 2
     return at
   }
@@ -932,12 +969,12 @@ class SpiceMsgCursorInit {
 
   from_buffer (a: BufferInput, at?: number, mb?: BufferInput): number {
     at = at || 0
-    const dv = new SpiceDataView(a)
+    const dv = Array.isArray(a) ? new SpiceDataView(a) : new DataView(a)
     this.position = new SpicePoint16()
     at = this.position.from_dv(dv, at, mb)
     this.trail_length = dv.getUint16(at, true); at += 2
     this.trail_frequency = dv.getUint16(at, true); at += 2
-    this.visible = dv.getUint8(at, true); at++
+    this.visible = dv.getUint8(at); at++
     this.cursor = new SpiceCursor()
     return this.cursor.from_dv(dv, at, a)
   }
@@ -953,11 +990,21 @@ class SpiceMsgPlaybackData {
 
   from_buffer (a: BufferInput, at?: number, mb?: BufferInput): number {
     at = at || 0
-    const dv = new SpiceDataView(a)
-    this.time = dv.getUint32(at, true); at += 4
-    if (dv.u8.length > at) {
-      this.data = dv.sliceData(at)
-      at += this.data.byteLength
+    if (Array.isArray(a)) {
+      const dv = new SpiceDataView(a)
+      this.time = dv.getUint32(at, true); at += 4
+      if (dv.u8.length > at) {
+        this.data = dv.sliceData(at)
+        at += this.data.byteLength
+      }
+    } else {
+      const dv = new DataView(a)
+      this.time = dv.getUint32(at, true); at += 4
+      const u8 = new Uint8Array(a)
+      if (u8.length > at) {
+        this.data = u8.slice(at).buffer
+        at += this.data.byteLength
+      }
     }
     return at
   }
@@ -974,12 +1021,23 @@ class SpiceMsgPlaybackMode {
 
   from_buffer (a: BufferInput, at?: number, mb?: BufferInput): number {
     at = at || 0
-    const dv = new SpiceDataView(a)
-    this.time = dv.getUint32(at, true); at += 4
-    this.mode = dv.getUint16(at, true); at += 2
-    if (dv.u8.length > at) {
-      this.data = dv.sliceData(at)
-      at += this.data.byteLength
+    if (Array.isArray(a)) {
+      const dv = new SpiceDataView(a)
+      this.time = dv.getUint32(at, true); at += 4
+      this.mode = dv.getUint16(at, true); at += 2
+      if (dv.u8.length > at) {
+        this.data = dv.sliceData(at)
+        at += this.data.byteLength
+      }
+    } else {
+      const dv = new DataView(a)
+      this.time = dv.getUint32(at, true); at += 4
+      this.mode = dv.getUint16(at, true); at += 2
+      const u8 = new Uint8Array(a)
+      if (u8.length > at) {
+        this.data = u8.slice(at).buffer
+        at += this.data.byteLength
+      }
     }
     return at
   }
@@ -997,7 +1055,7 @@ class SpiceMsgPlaybackStart {
 
   from_buffer (a: BufferInput, at?: number, mb?: BufferInput): number {
     at = at || 0
-    const dv = new SpiceDataView(a)
+    const dv = Array.isArray(a) ? new SpiceDataView(a) : new DataView(a)
     this.channels = dv.getUint32(at, true); at += 4
     this.format = dv.getUint16(at, true); at += 2
     this.frequency = dv.getUint32(at, true); at += 4
@@ -1017,10 +1075,10 @@ class SpiceMsgCursorSet {
 
   from_buffer (a: BufferInput, at?: number, mb?: BufferInput): number {
     at = at || 0
-    const dv = new SpiceDataView(a)
+    const dv = Array.isArray(a) ? new SpiceDataView(a) : new DataView(a)
     this.position = new SpicePoint16()
     at = this.position.from_dv(dv, at, mb)
-    this.visible = dv.getUint8(at, true); at++
+    this.visible = dv.getUint8(at); at++
     this.cursor = new SpiceCursor()
     return this.cursor.from_dv(dv, at, a)
   }
@@ -1039,7 +1097,7 @@ class SpiceMsgcKeyDown {
 
   to_buffer (a: ArrayBuffer, at?: number): number {
     at = at || 0
-    const dv = new SpiceDataView(a)
+    const dv = new DataView(a)
     dv.setUint32(at, this.code, true); at += 4
     return at
   }
@@ -1083,21 +1141,39 @@ class SpiceMsgDisplayStreamCreate {
 
   from_buffer (a: BufferInput, at?: number): void {
     at = at || 0
-    const dv = new SpiceDataView(a)
-    this.surface_id = dv.getUint32(at, true); at += 4
-    this.id = dv.getUint32(at, true); at += 4
-    this.flags = dv.getUint8(at, true); at += 1
-    this.codec_type = dv.getUint8(at, true); at += 1
-    this.stamp = dv.getUint64(at, true); at += 8
-    this.stream_width = dv.getUint32(at, true); at += 4
-    this.stream_height = dv.getUint32(at, true); at += 4
-    this.src_width = dv.getUint32(at, true); at += 4
-    this.src_height = dv.getUint32(at, true); at += 4
+    if (Array.isArray(a)) {
+      const dv = new SpiceDataView(a)
+      this.surface_id = dv.getUint32(at, true); at += 4
+      this.id = dv.getUint32(at, true); at += 4
+      this.flags = dv.getUint8(at); at += 1
+      this.codec_type = dv.getUint8(at); at += 1
+      this.stamp = dv.getUint64(at, true); at += 8
+      this.stream_width = dv.getUint32(at, true); at += 4
+      this.stream_height = dv.getUint32(at, true); at += 4
+      this.src_width = dv.getUint32(at, true); at += 4
+      this.src_height = dv.getUint32(at, true); at += 4
 
-    this.dest = new SpiceRect()
-    at = this.dest.from_dv(dv, at, a)
-    this.clip = new SpiceClip()
-    this.clip.from_dv(dv, at, a)
+      this.dest = new SpiceRect()
+      at = this.dest.from_dv(dv, at, a)
+      this.clip = new SpiceClip()
+      this.clip.from_dv(dv, at, a)
+    } else {
+      const dv = new DataView(a)
+      this.surface_id = dv.getUint32(at, true); at += 4
+      this.id = dv.getUint32(at, true); at += 4
+      this.flags = dv.getUint8(at); at += 1
+      this.codec_type = dv.getUint8(at); at += 1
+      this.stamp = Number(dv.getBigUint64(at, true)); at += 8
+      this.stream_width = dv.getUint32(at, true); at += 4
+      this.stream_height = dv.getUint32(at, true); at += 4
+      this.src_width = dv.getUint32(at, true); at += 4
+      this.src_height = dv.getUint32(at, true); at += 4
+
+      this.dest = new SpiceRect()
+      at = this.dest.from_dv(dv, at, a)
+      this.clip = new SpiceClip()
+      this.clip.from_dv(dv, at, a)
+    }
   }
 }
 
@@ -1105,7 +1181,7 @@ class SpiceStreamDataHeader {
   id: number
   multi_media_time: number
 
-  from_dv (dv: SpiceDataView, at: number, mb: BufferInput): number {
+  from_dv (dv: DataView | SpiceDataView, at: number, mb: BufferInput): number {
     this.id = dv.getUint32(at, true); at += 4
     this.multi_media_time = dv.getUint32(at, true); at += 4
     return at
@@ -1123,11 +1199,20 @@ class SpiceMsgDisplayStreamData {
 
   from_buffer (a: BufferInput, at?: number): void {
     at = at || 0
-    const dv = new SpiceDataView(a)
-    this.base = new SpiceStreamDataHeader()
-    at = this.base.from_dv(dv, at, a)
-    this.data_size = dv.getUint32(at, true); at += 4
-    this.data = dv.u8.subarray(at, at + this.data_size)
+    if (Array.isArray(a)) {
+      const dv = new SpiceDataView(a)
+      this.base = new SpiceStreamDataHeader()
+      at = this.base.from_dv(dv, at, a)
+      this.data_size = dv.getUint32(at, true); at += 4
+      this.data = dv.u8.subarray(at, at + this.data_size)
+    } else {
+      const dv = new DataView(a)
+      const u8 = new Uint8Array(a)
+      this.base = new SpiceStreamDataHeader()
+      at = this.base.from_dv(dv, at, a)
+      this.data_size = dv.getUint32(at, true); at += 4
+      this.data = u8.subarray(at, at + this.data_size)
+    }
   }
 }
 
@@ -1145,15 +1230,28 @@ class SpiceMsgDisplayStreamDataSized {
 
   from_buffer (a: BufferInput, at?: number): void {
     at = at || 0
-    const dv = new SpiceDataView(a)
-    this.base = new SpiceStreamDataHeader()
-    at = this.base.from_dv(dv, at, a)
-    this.width = dv.getUint32(at, true); at += 4
-    this.height = dv.getUint32(at, true); at += 4
-    this.dest = new SpiceRect()
-    at = this.dest.from_dv(dv, at, a)
-    this.data_size = dv.getUint32(at, true); at += 4
-    this.data = dv.u8.subarray(at, at + this.data_size)
+    if (Array.isArray(a)) {
+      const dv = new SpiceDataView(a)
+      this.base = new SpiceStreamDataHeader()
+      at = this.base.from_dv(dv, at, a)
+      this.width = dv.getUint32(at, true); at += 4
+      this.height = dv.getUint32(at, true); at += 4
+      this.dest = new SpiceRect()
+      at = this.dest.from_dv(dv, at, a)
+      this.data_size = dv.getUint32(at, true); at += 4
+      this.data = dv.u8.subarray(at, at + this.data_size)
+    } else {
+      const dv = new DataView(a)
+      const u8 = new Uint8Array(a)
+      this.base = new SpiceStreamDataHeader()
+      at = this.base.from_dv(dv, at, a)
+      this.width = dv.getUint32(at, true); at += 4
+      this.height = dv.getUint32(at, true); at += 4
+      this.dest = new SpiceRect()
+      at = this.dest.from_dv(dv, at, a)
+      this.data_size = dv.getUint32(at, true); at += 4
+      this.data = u8.subarray(at, at + this.data_size)
+    }
   }
 }
 
@@ -1167,7 +1265,7 @@ class SpiceMsgDisplayStreamClip {
 
   from_buffer (a: BufferInput, at?: number): void {
     at = at || 0
-    const dv = new SpiceDataView(a)
+    const dv = Array.isArray(a) ? new SpiceDataView(a) : new DataView(a)
     this.id = dv.getUint32(at, true); at += 4
     this.clip = new SpiceClip()
     this.clip.from_dv(dv, at, a)
@@ -1183,7 +1281,7 @@ class SpiceMsgDisplayStreamDestroy {
 
   from_buffer (a: BufferInput, at?: number): void {
     at = at || 0
-    const dv = new SpiceDataView(a)
+    const dv = Array.isArray(a) ? new SpiceDataView(a) : new DataView(a)
     this.id = dv.getUint32(at, true); at += 4
   }
 }
@@ -1200,7 +1298,7 @@ class SpiceMsgDisplayStreamActivateReport {
 
   from_buffer (a: BufferInput, at?: number): void {
     at = at || 0
-    const dv = new SpiceDataView(a)
+    const dv = Array.isArray(a) ? new SpiceDataView(a) : new DataView(a)
     this.stream_id = dv.getUint32(at, true); at += 4
     this.unique_id = dv.getUint32(at, true); at += 4
     this.max_window_size = dv.getUint32(at, true); at += 4
@@ -1233,7 +1331,7 @@ class SpiceMsgcDisplayStreamReport {
 
   to_buffer (a: ArrayBuffer, at?: number): number {
     at = at || 0
-    const dv = new SpiceDataView(a)
+    const dv = new DataView(a)
     dv.setUint32(at, this.stream_id, true); at += 4
     dv.setUint32(at, this.unique_id, true); at += 4
     dv.setUint32(at, this.start_frame_mm_time, true); at += 4
@@ -1263,12 +1361,22 @@ class SpiceMsgDisplayInvalList {
   from_buffer (a: BufferInput, at?: number): void {
     let i: number
     at = at || 0
-    const dv = new SpiceDataView(a)
-    this.count = dv.getUint16(at, true); at += 2
-    for (i = 0; i < this.count; i++) {
-      this.resources[i] = { type: 0, id: 0 }
-      this.resources[i].type = dv.getUint8(at, true); at++
-      this.resources[i].id = dv.getUint64(at, true); at += 8
+    if (Array.isArray(a)) {
+      const dv = new SpiceDataView(a)
+      this.count = dv.getUint16(at, true); at += 2
+      for (i = 0; i < this.count; i++) {
+        this.resources[i] = { type: 0, id: 0 }
+        this.resources[i].type = dv.getUint8(at); at++
+        this.resources[i].id = dv.getUint64(at, true); at += 8
+      }
+    } else {
+      const dv = new DataView(a)
+      this.count = dv.getUint16(at, true); at += 2
+      for (i = 0; i < this.count; i++) {
+        this.resources[i] = { type: 0, id: 0 }
+        this.resources[i].type = dv.getUint8(at); at++
+        this.resources[i].id = Number(dv.getBigUint64(at, true)); at += 8
+      }
     }
   }
 }
@@ -1283,11 +1391,19 @@ class SpiceMsgPortInit {
 
   from_buffer (a: BufferInput, at?: number): void {
     at = at || 0
-    const dv = new SpiceDataView(a)
-    const namesize = dv.getUint32(at, true); at += 4
-    const offset = dv.getUint32(at, true); at += 4
-    this.opened = dv.getUint8(at, true); at += 1
-    this.name = dv.sliceData(offset, offset + namesize - 1)
+    if (Array.isArray(a)) {
+      const dv = new SpiceDataView(a)
+      const namesize = dv.getUint32(at, true); at += 4
+      const offset = dv.getUint32(at, true); at += 4
+      this.opened = dv.getUint8(at); at += 1
+      this.name = dv.sliceData(offset, offset + namesize - 1)
+    } else {
+      const dv = new DataView(a)
+      const namesize = dv.getUint32(at, true); at += 4
+      const offset = dv.getUint32(at, true); at += 4
+      this.opened = dv.getUint8(at); at += 1
+      this.name = a.slice(offset, offset + namesize - 1)
+    }
   }
 }
 
