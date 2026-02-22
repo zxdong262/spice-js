@@ -45,7 +45,14 @@ import { DEBUG, hexdump_buffer } from './utils'
 import * as Webm from './webm'
 import { rsa_encrypt } from './ticket'
 
-class SpiceConn {
+export type SpiceEventType = 'connection_status' | 'keyboard_modifiers'
+
+export interface SpiceEventHandlers {
+  connection_status: (status: string) => void
+  keyboard_modifiers: (modifiers: { num_lock: boolean, caps_lock: boolean, scroll_lock: boolean }) => void
+}
+
+export class SpiceConn {
   ws: WebSocket
   connection_id: number
   type: number
@@ -68,6 +75,7 @@ class SpiceConn {
   ack_window?: number
   msgs_until_ack?: number
   timeout?: number
+  private event_handlers: Map<SpiceEventType, Set<Function>>
 
   constructor (o: any) {
     if (o === undefined || o.uri === undefined || !o.uri) { throw new Error('You must specify a uri') }
@@ -97,6 +105,8 @@ class SpiceConn {
     this.wire_reader = new SpiceWireReader(this, this.process_inbound.bind(this))
     this.messages_sent = 0
     this.warnings = []
+    this.event_handlers = new Map()
+    this.emit('connection_status', 'connecting')
 
     this.ws.addEventListener('open', function (e) {
       DEBUG > 0 && console.log('>> WebSockets.onopen')
@@ -108,11 +118,14 @@ class SpiceConn {
       this.parent.send_hdr()
       this.parent.wire_reader.request(SpiceLinkHeader.prototype.buffer_size())
       this.parent.state = 'start'
+      this.parent.emit('connection_status', 'connecting')
     })
     this.ws.addEventListener('error', function (e) {
       if ('url' in e.target) {
         this.parent.log_err("WebSocket error: Can't connect to websocket on URL: " + e.target.url)
       }
+      this.parent.state = 'error'
+      this.parent.emit('connection_status', 'error')
       this.parent.report_error(e)
     })
     this.ws.addEventListener('close', function (e) {
@@ -126,6 +139,7 @@ class SpiceConn {
         this.parent.onerror(e)
         this.parent.log_err(e.toString())
       }
+      this.parent.emit('connection_status', 'disconnected')
     })
 
     if (this.ws.readyState == 2 || this.ws.readyState == 3) { throw new Error('Unable to connect to ' + o.uri) }
@@ -259,6 +273,7 @@ class SpiceConn {
           this.send_msg(reply)
         }
         this.state = 'ready'
+        this.emit('connection_status', 'connected')
         this.wire_reader.request(SpiceMiniData.prototype.buffer_size())
         if (this.timeout) {
           window.clearTimeout(this.timeout)
@@ -266,6 +281,7 @@ class SpiceConn {
         }
       } else {
         this.state = 'error'
+        this.emit('connection_status', 'error')
         if (this.auth_reply.auth_code == Constants.SPICE_LINK_ERR_PERMISSION_DENIED) {
           var e = new Error('Permission denied.')
         } else {
@@ -405,6 +421,33 @@ class SpiceConn {
     if (this.onsuccess != undefined) { this.onsuccess(m) }
   }
 
+  on<K extends SpiceEventType> (event: K, handler: SpiceEventHandlers[K]): void {
+    if (!this.event_handlers.has(event)) {
+      this.event_handlers.set(event, new Set())
+    }
+    this.event_handlers.get(event)!.add(handler)
+  }
+
+  off<K extends SpiceEventType> (event: K, handler: SpiceEventHandlers[K]): void {
+    const handlers = this.event_handlers.get(event)
+    if (handlers) {
+      handlers.delete(handler)
+    }
+  }
+
+  emit<K extends SpiceEventType> (event: K, ...args: Parameters<SpiceEventHandlers[K]>): void {
+    const handlers = this.event_handlers.get(event)
+    if (handlers) {
+      handlers.forEach(handler => {
+        try {
+          (handler as Function)(...args)
+        } catch (e) {
+          this.log_err('Error in event handler for ' + event + ': ' + e)
+        }
+      })
+    }
+  }
+
   cleanup (): void {
     if (this.timeout) {
       window.clearTimeout(this.timeout)
@@ -424,8 +467,4 @@ class SpiceConn {
 
 function spiceconn_timeout (sc: SpiceConn): void {
   sc.handle_timeout()
-}
-
-export {
-  SpiceConn
 }

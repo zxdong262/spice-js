@@ -24,6 +24,14 @@ import { KeyNames } from './atKeynames'
 import { SpiceConn } from './spiceconn'
 import { DEBUG } from './utils'
 
+function parse_keyboard_modifiers (modifiers: number): { num_lock: boolean, caps_lock: boolean, scroll_lock: boolean } {
+  return {
+    scroll_lock: (modifiers & Constants.SPICE_KEYBOARD_MODIFIER_FLAGS_SCROLL_LOCK) !== 0,
+    num_lock: (modifiers & Constants.SPICE_KEYBOARD_MODIFIER_FLAGS_NUM_LOCK) !== 0,
+    caps_lock: (modifiers & Constants.SPICE_KEYBOARD_MODIFIER_FLAGS_CAPS_LOCK) !== 0
+  }
+}
+
 /* ----------------------------------------------------------------------------
  ** Modifier Keystates
  **     These need to be tracked because focus in and out can get the keyboard
@@ -54,14 +62,18 @@ export class SpiceInputsConn extends SpiceConn {
       const inputs_init = new Messages.SpiceMsgInputsInit(msg.data)
       this.keyboard_modifiers = inputs_init.keyboard_modifiers
       DEBUG > 1 && console.log('MsgInputsInit - modifier ' + this.keyboard_modifiers)
-      // FIXME - We don't do anything with the keyboard modifiers...
+      if (this.parent) {
+        this.parent.emit('keyboard_modifiers', parse_keyboard_modifiers(this.keyboard_modifiers))
+      }
       return true
     }
     if (msg.type == Constants.SPICE_MSG_INPUTS_KEY_MODIFIERS) {
       const key = new Messages.SpiceMsgInputsKeyModifiers(msg.data)
       this.keyboard_modifiers = key.keyboard_modifiers
       DEBUG > 1 && console.log('MsgInputsKeyModifiers - modifier ' + this.keyboard_modifiers)
-      // FIXME - We don't do anything with the keyboard modifiers...
+      if (this.parent) {
+        this.parent.emit('keyboard_modifiers', parse_keyboard_modifiers(this.keyboard_modifiers))
+      }
       return true
     }
     if (msg.type == Constants.SPICE_MSG_INPUTS_MOUSE_MOTION_ACK) {

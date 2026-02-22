@@ -100,11 +100,40 @@ Include the minified bundle:
 | `SpicePlaybackConn` | Audio playback channel |
 | `SpicePortConn` | Port channel connection |
 | `Constants` | SPICE protocol constants |
+| `SpiceEventType` | Event type definitions |
+| `SpiceEventHandlers` | Event handler type definitions |
 | `handle_file_dragover` | File drag handler |
 | `handle_file_drop` | File drop handler |
 | `resize_helper` | Resize helper function |
 | `handle_resize` | Resize handler |
 | `sendCtrlAltDel` | Send Ctrl+Alt+Del sequence |
+
+### Events
+
+The `SpiceMainConn` class supports event registration using `on()` and `off()` methods.
+
+#### connection_status
+
+Emitted when the connection status changes.
+
+```javascript
+spice.on('connection_status', (status) => {
+  console.log('Connection status:', status);
+  // Possible values: 'connecting', 'connected', 'error', 'disconnected'
+});
+```
+
+#### keyboard_modifiers
+
+Emitted when keyboard modifier keys (NumLock, CapsLock, ScrollLock) state changes.
+
+```javascript
+spice.on('keyboard_modifiers', (modifiers) => {
+  console.log('NumLock:', modifiers.num_lock);
+  console.log('CapsLock:', modifiers.caps_lock);
+  console.log('ScrollLock:', modifiers.scroll_lock);
+});
+```
 
 ## Build
 

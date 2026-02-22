@@ -100,11 +100,40 @@ const { SpiceMainConn, Constants } = require('spice-client');
 | `SpicePlaybackConn` | 音频播放通道 |
 | `SpicePortConn` | 端口通道连接 |
 | `Constants` | SPICE 协议常量 |
+| `SpiceEventType` | 事件类型定义 |
+| `SpiceEventHandlers` | 事件处理器类型定义 |
 | `handle_file_dragover` | 文件拖放处理函数 |
 | `handle_file_drop` | 文件释放处理函数 |
 | `resize_helper` | 调整大小辅助函数 |
 | `handle_resize` | 调整大小处理函数 |
 | `sendCtrlAltDel` | 发送 Ctrl+Alt+Del 组合键 |
+
+### 事件
+
+`SpiceMainConn` 类支持使用 `on()` 和 `off()` 方法注册事件。
+
+#### connection_status
+
+连接状态变化时触发。
+
+```javascript
+spice.on('connection_status', (status) => {
+  console.log('连接状态:', status);
+  // 可能的值: 'connecting', 'connected', 'error', 'disconnected'
+});
+```
+
+#### keyboard_modifiers
+
+键盘修饰键（NumLock、CapsLock、ScrollLock）状态变化时触发。
+
+```javascript
+spice.on('keyboard_modifiers', (modifiers) => {
+  console.log('NumLock:', modifiers.num_lock);
+  console.log('CapsLock:', modifiers.caps_lock);
+  console.log('ScrollLock:', modifiers.scroll_lock);
+});
+```
 
 ## 构建
 
