@@ -10,7 +10,7 @@ interface LogEntry {
 const WebLogger = {
   logs: [] as LogEntry[],
 
-  log(level: string, message: string) {
+  log (level: string, message: string) {
     const entry: LogEntry = {
       timestamp: new Date().toISOString(),
       level,
@@ -30,19 +30,19 @@ const WebLogger = {
     console.log(`[${level.toUpperCase()}] ${message}`);
   },
 
-  info(message: string) {
+  info (message: string) {
     this.log("info", message);
   },
 
-  warn(message: string) {
+  warn (message: string) {
     this.log("warn", message);
   },
 
-  error(message: string) {
+  error (message: string) {
     this.log("error", message);
   },
 
-  debug(message: string) {
+  debug (message: string) {
     this.log("debug", message);
   },
 };
@@ -52,6 +52,7 @@ const App: React.FC = () => {
   const [port, setPort] = useState("5908");
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState<"disconnected" | "connecting" | "connected">("disconnected");
+  const [scaleView, setScaleView] = useState(true);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [debugInfo, setDebugInfo] = useState<string>("");
   const spiceConnRef = useRef<SpiceMainConn | null>(null);
@@ -114,6 +115,7 @@ const App: React.FC = () => {
         uri: wsUrl,
         password: password || "",
         screen_id: "spice-screen",
+        scale_view: scaleView,
         onsuccess: () => {
           setStatus("connected");
           WebLogger.info("SPICE connection established successfully");
@@ -202,6 +204,15 @@ const App: React.FC = () => {
               Disconnect
             </button>
           )}
+          <label style={{ display: "flex", alignItems: "center", gap: "5px", marginLeft: "10px" }}>
+            <input
+              type="checkbox"
+              checked={scaleView}
+              onChange={(e) => setScaleView(e.target.checked)}
+              disabled={status !== "disconnected"}
+            />
+            Scale View
+          </label>
         </div>
       </div>
 

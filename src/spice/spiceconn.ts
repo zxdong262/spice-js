@@ -80,15 +80,16 @@ export class SpiceConn {
   msgs_until_ack?: number
   timeout?: number
   inputs?: any
+  scale_view?: boolean
   private event_handlers: Map<SpiceEventType, Set<Function>>
 
   relative_now (): number {
     return 0
   }
 
-  send_clipboard_grab (): void {}
+  send_clipboard_grab (): void { }
 
-  constructor (o: any) {
+  constructor(o: any) {
     if (o === undefined || o.uri === undefined || !o.uri) { throw new Error('You must specify a uri') }
 
     this.ws = new WebSocket(o.uri, 'binary') as SpiceWebSocket
@@ -110,6 +111,7 @@ export class SpiceConn {
     if (o.onerror !== undefined) { this.onerror = o.onerror }
     if (o.onsuccess !== undefined) { this.onsuccess = o.onsuccess }
     if (o.onagent !== undefined) { this.onagent = o.onagent }
+    if (o.scale_view !== undefined) { this.scale_view = o.scale_view } else { this.scale_view = true }
 
     this.state = 'connecting'
     this.ws.parent = this
@@ -167,7 +169,7 @@ export class SpiceConn {
 
     msg.common_caps.push(
       (1 << Constants.SPICE_COMMON_CAP_PROTOCOL_AUTH_SELECTION) |
-            (1 << Constants.SPICE_COMMON_CAP_MINI_HEADER)
+      (1 << Constants.SPICE_COMMON_CAP_MINI_HEADER)
     )
 
     if (msg.channel_type == Constants.SPICE_CHANNEL_PLAYBACK) {
@@ -180,9 +182,9 @@ export class SpiceConn {
       )
     } else if (msg.channel_type == Constants.SPICE_CHANNEL_DISPLAY) {
       var caps = (1 << Constants.SPICE_DISPLAY_CAP_SIZED_STREAM) |
-                        (1 << Constants.SPICE_DISPLAY_CAP_STREAM_REPORT) |
-                        (1 << Constants.SPICE_DISPLAY_CAP_MULTI_CODEC) |
-                        (1 << Constants.SPICE_DISPLAY_CAP_CODEC_MJPEG)
+        (1 << Constants.SPICE_DISPLAY_CAP_STREAM_REPORT) |
+        (1 << Constants.SPICE_DISPLAY_CAP_MULTI_CODEC) |
+        (1 << Constants.SPICE_DISPLAY_CAP_CODEC_MJPEG)
       if ('MediaSource' in window && MediaSource.isTypeSupported(Webm.Constants.SPICE_VP8_CODEC)) { caps |= (1 << Constants.SPICE_DISPLAY_CAP_CODEC_VP8) }
       msg.channel_caps.push(caps)
     }

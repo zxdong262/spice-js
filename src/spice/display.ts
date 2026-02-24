@@ -119,8 +119,8 @@ export class SpiceDisplayConn extends SpiceConn {
 
       if (draw_copy.data && draw_copy.data.src_bitmap) {
         if (draw_copy.data.src_bitmap.descriptor.flags &&
-            draw_copy.data.src_bitmap.descriptor.flags != Constants.SPICE_IMAGE_FLAGS_CACHE_ME &&
-            draw_copy.data.src_bitmap.descriptor.flags != Constants.SPICE_IMAGE_FLAGS_HIGH_BITS_SET) {
+          draw_copy.data.src_bitmap.descriptor.flags != Constants.SPICE_IMAGE_FLAGS_CACHE_ME &&
+          draw_copy.data.src_bitmap.descriptor.flags != Constants.SPICE_IMAGE_FLAGS_HIGH_BITS_SET) {
           this.log_warn('FIXME: DrawCopy unhandled image flags: ' + draw_copy.data.src_bitmap.descriptor.flags)
           Utils.DEBUG <= 1 && this.log_draw('DrawCopy', draw_copy)
         }
@@ -143,7 +143,7 @@ export class SpiceDisplayConn extends SpiceConn {
             descriptor: draw_copy.data.src_bitmap.descriptor
           })
         } else if (draw_copy.data.src_bitmap.descriptor.type == Constants.SPICE_IMAGE_TYPE_FROM_CACHE ||
-                draw_copy.data.src_bitmap.descriptor.type == Constants.SPICE_IMAGE_TYPE_FROM_CACHE_LOSSLESS) {
+          draw_copy.data.src_bitmap.descriptor.type == Constants.SPICE_IMAGE_TYPE_FROM_CACHE_LOSSLESS) {
           if (!this.cache || !this.cache[draw_copy.data.src_bitmap.descriptor.id]) {
             this.log_warn('FIXME: DrawCopy did not find image id ' + draw_copy.data.src_bitmap.descriptor.id + ' in cache.')
             return false
@@ -260,7 +260,7 @@ export class SpiceDisplayConn extends SpiceConn {
             draw_copy.data.src_bitmap.bitmap)
           if (!source_img) {
             this.log_warn('FIXME: Unable to interpret bitmap of format: ' +
-                draw_copy.data.src_bitmap.bitmap.format)
+              draw_copy.data.src_bitmap.bitmap.format)
             return false
           }
 
@@ -283,7 +283,7 @@ export class SpiceDisplayConn extends SpiceConn {
             draw_copy.data.src_bitmap.lz_rgb)
           if (!source_img) {
             this.log_warn('FIXME: Unable to interpret bitmap of type: ' +
-                draw_copy.data.src_bitmap.lz_rgb.type)
+              draw_copy.data.src_bitmap.lz_rgb.type)
             return false
           }
 
@@ -453,11 +453,11 @@ export class SpiceDisplayConn extends SpiceConn {
 
       const m = new Messages.SpiceMsgSurfaceCreate(msg.data)
       Utils.DEBUG > 1 && console.log(this.type + ': MsgSurfaceCreate id ' + m.surface.surface_id +
-                                  '; ' + m.surface.width + 'x' + m.surface.height +
-                                  '; format ' + m.surface.format +
-                                  '; flags ' + m.surface.flags)
+        '; ' + m.surface.width + 'x' + m.surface.height +
+        '; format ' + m.surface.format +
+        '; flags ' + m.surface.flags)
       if (m.surface.format != Constants.SPICE_SURFACE_FMT_32_xRGB &&
-          m.surface.format != Constants.SPICE_SURFACE_FMT_32_ARGB) {
+        m.surface.format != Constants.SPICE_SURFACE_FMT_32_ARGB) {
         this.log_warn('FIXME: cannot handle surface format ' + m.surface.format + ' yet.')
         return false
       }
@@ -477,6 +477,12 @@ export class SpiceDisplayConn extends SpiceConn {
       surface.canvas = canvas
       surface.draw_count = 0
       this.surfaces[m.surface.surface_id] = surface
+
+      if (this.parent && this.parent.scale_view) {
+        canvas.style.maxWidth = '100%'
+        canvas.style.maxHeight = '100%'
+        canvas.style.objectFit = 'contain'
+      }
 
       if (m.surface.flags & Constants.SPICE_SURFACE_FLAGS_PRIMARY) {
         this.primary_surface = m.surface.surface_id
@@ -502,8 +508,8 @@ export class SpiceDisplayConn extends SpiceConn {
     if (msg.type == Constants.SPICE_MSG_DISPLAY_STREAM_CREATE) {
       const m = new Messages.SpiceMsgDisplayStreamCreate(msg.data)
       Utils.STREAM_DEBUG > 0 && console.log(this.type + ': MsgStreamCreate id' + m.id + '; type ' + m.codec_type +
-                                        '; width ' + m.stream_width + '; height ' + m.stream_height +
-                                        '; left ' + m.dest.left + '; top ' + m.dest.top
+        '; width ' + m.stream_width + '; height ' + m.stream_height +
+        '; left ' + m.dest.left + '; top ' + m.dest.top
       )
       if (!this.streams) {
         this.streams = []
@@ -557,7 +563,7 @@ export class SpiceDisplayConn extends SpiceConn {
     }
 
     if (msg.type == Constants.SPICE_MSG_DISPLAY_STREAM_DATA ||
-        msg.type == Constants.SPICE_MSG_DISPLAY_STREAM_DATA_SIZED) {
+      msg.type == Constants.SPICE_MSG_DISPLAY_STREAM_DATA_SIZED) {
       let m
       if (msg.type == Constants.SPICE_MSG_DISPLAY_STREAM_DATA_SIZED) {
         m = new Messages.SpiceMsgDisplayStreamDataSized(msg.data)
@@ -692,8 +698,8 @@ export class SpiceDisplayConn extends SpiceConn {
       debug_canvas.setAttribute('width', o.image_data.width.toString())
       debug_canvas.setAttribute('height', o.image_data.height.toString())
       debug_canvas.setAttribute('id', o.tag + '.' +
-          this.surfaces[o.base.surface_id].draw_count + '.' +
-          o.base.surface_id + '@' + o.base.box.left + 'x' + o.base.box.top)
+        this.surfaces[o.base.surface_id].draw_count + '.' +
+        o.base.surface_id + '@' + o.base.box.left + 'x' + o.base.box.top)
       debug_canvas.getContext('2d').putImageData(o.image_data, 0, 0)
       document.getElementById(this.parent.dump_id).appendChild(debug_canvas)
     }
@@ -706,13 +712,13 @@ export class SpiceDisplayConn extends SpiceConn {
   log_draw (prefix: string, draw: any): void {
     let str = prefix + '.' + draw.base.surface_id + '.' + this.surfaces[draw.base.surface_id].draw_count + ': '
     str += 'base.box ' + draw.base.box.left + ', ' + draw.base.box.top + ' to ' +
-                           draw.base.box.right + ', ' + draw.base.box.bottom
+      draw.base.box.right + ', ' + draw.base.box.bottom
     str += '; clip.type ' + draw.base.clip.type
 
     if (draw.data) {
       if (draw.data.src_area) {
         str += '; src_area ' + draw.data.src_area.left + ', ' + draw.data.src_area.top + ' to ' +
-                             draw.data.src_area.right + ', ' + draw.data.src_area.bottom
+          draw.data.src_area.right + ', ' + draw.data.src_area.bottom
       }
 
       if (draw.data.src_bitmap && draw.data.src_bitmap != null) {
@@ -724,25 +730,25 @@ export class SpiceDisplayConn extends SpiceConn {
         }
         if (draw.data.src_bitmap.bitmap) {
           str += '; BITMAP format ' + draw.data.src_bitmap.bitmap.format +
-                  '; flags ' + draw.data.src_bitmap.bitmap.flags +
-                  '; x ' + draw.data.src_bitmap.bitmap.x +
-                  '; y ' + draw.data.src_bitmap.bitmap.y +
-                  '; stride ' + draw.data.src_bitmap.bitmap.stride
+            '; flags ' + draw.data.src_bitmap.bitmap.flags +
+            '; x ' + draw.data.src_bitmap.bitmap.x +
+            '; y ' + draw.data.src_bitmap.bitmap.y +
+            '; stride ' + draw.data.src_bitmap.bitmap.stride
         }
         if (draw.data.src_bitmap.quic) {
           str += '; QUIC type ' + draw.data.src_bitmap.quic.type +
-                  '; width ' + draw.data.src_bitmap.quic.width +
-                  '; height ' + draw.data.src_bitmap.quic.height
+            '; width ' + draw.data.src_bitmap.quic.width +
+            '; height ' + draw.data.src_bitmap.quic.height
         }
         if (draw.data.src_bitmap.lz_rgb) {
           str += '; LZ_RGB length ' + draw.data.src_bitmap.lz_rgb.length +
-                 '; magic ' + draw.data.src_bitmap.lz_rgb.magic +
-                 '; version 0x' + draw.data.src_bitmap.lz_rgb.version.toString(16) +
-                 '; type ' + draw.data.src_bitmap.lz_rgb.type +
-                 '; width ' + draw.data.src_bitmap.lz_rgb.width +
-                 '; height ' + draw.data.src_bitmap.lz_rgb.height +
-                 '; stride ' + draw.data.src_bitmap.lz_rgb.stride +
-                 '; top down ' + draw.data.src_bitmap.lz_rgb.top_down
+            '; magic ' + draw.data.src_bitmap.lz_rgb.magic +
+            '; version 0x' + draw.data.src_bitmap.lz_rgb.version.toString(16) +
+            '; type ' + draw.data.src_bitmap.lz_rgb.type +
+            '; width ' + draw.data.src_bitmap.lz_rgb.width +
+            '; height ' + draw.data.src_bitmap.lz_rgb.height +
+            '; stride ' + draw.data.src_bitmap.lz_rgb.stride +
+            '; top down ' + draw.data.src_bitmap.lz_rgb.top_down
         }
       } else {
         str += '; src_bitmap is null'
@@ -877,7 +883,7 @@ function handle_draw_jpeg_onload (this: HTMLImageElement & { o: any, alpha_img?:
     context.drawImage(c, this.o.base.box.left, this.o.base.box.top)
 
     if (this.o.descriptor &&
-        (this.o.descriptor.flags & Constants.SPICE_IMAGE_FLAGS_CACHE_ME)) {
+      (this.o.descriptor.flags & Constants.SPICE_IMAGE_FLAGS_CACHE_ME)) {
       if (!this.o.sc.cache) {
         this.o.sc.cache = {}
       }
@@ -895,7 +901,7 @@ function handle_draw_jpeg_onload (this: HTMLImageElement & { o: any, alpha_img?:
     this.src = Utils.EMPTY_GIF_IMAGE
 
     if (this.o.descriptor &&
-        (this.o.descriptor.flags & Constants.SPICE_IMAGE_FLAGS_CACHE_ME)) {
+      (this.o.descriptor.flags & Constants.SPICE_IMAGE_FLAGS_CACHE_ME)) {
       if (!this.o.sc.cache) {
         this.o.sc.cache = {}
       }
@@ -910,8 +916,8 @@ function handle_draw_jpeg_onload (this: HTMLImageElement & { o: any, alpha_img?:
     if (Utils.DUMP_DRAWS && this.o.sc.parent.dump_id) {
       const debug_canvas = document.createElement('canvas')
       debug_canvas.setAttribute('id', this.o.tag + '.' +
-          this.o.sc.surfaces[this.o.base.surface_id].draw_count + '.' +
-          this.o.base.surface_id + '@' + this.o.base.box.left + 'x' + this.o.base.box.top)
+        this.o.sc.surfaces[this.o.base.surface_id].draw_count + '.' +
+        this.o.base.surface_id + '@' + this.o.base.box.left + 'x' + this.o.base.box.top)
       debug_canvas.getContext('2d').drawImage(this, 0, 0)
       document.getElementById(this.o.sc.parent.dump_id).appendChild(debug_canvas)
     }
@@ -970,7 +976,7 @@ function process_stream_data_report (sc: SpiceDisplayConn, id: number, msg_mmtim
   }
 
   if (sc.streams[id].report.num_frames > sc.streams[id].max_window_size ||
-      (msg_mmtime - sc.streams[id].report.start_frame_mm_time) > sc.streams[id].timeout_ms) {
+    (msg_mmtime - sc.streams[id].report.start_frame_mm_time) > sc.streams[id].timeout_ms) {
     sc.streams[id].report.end_frame_mm_time = msg_mmtime
     sc.streams[id].report.last_frame_delay = time_until_due
 
@@ -1068,9 +1074,9 @@ function handle_append_video_buffer_done (e: Event): void {
   }
 
   if (stream.video.buffered.length > 0 &&
-      stream.video.currentTime < stream.video.buffered.start(stream.video.buffered.length - 1)) {
+    stream.video.currentTime < stream.video.buffered.start(stream.video.buffered.length - 1)) {
     console.log('Video appears to have fallen behind; advancing to ' +
-        stream.video.buffered.start(stream.video.buffered.length - 1))
+      stream.video.buffered.start(stream.video.buffered.length - 1))
     stream.video.currentTime = stream.video.buffered.start(stream.video.buffered.length - 1)
   }
 
@@ -1140,7 +1146,7 @@ function video_handle_event_debug (e: Event): void {
   if (s.video) {
     if (Utils.STREAM_DEBUG > 0 || s.video.buffered.length > 1) {
       console.log(s.video.currentTime + ':id ' + s.id + ' event ' + e.type +
-          Utils.dump_media_element(s.video))
+        Utils.dump_media_element(s.video))
     }
   }
 
